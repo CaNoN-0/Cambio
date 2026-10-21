@@ -1,0 +1,21 @@
+{
+  "short_name": "Cambio",
+  "name": "Cambio",
+  "description": "Monochromatic Stablecoin Settlement on Mezo",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/logo.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#FAFAF8",
+  "theme_color": "#111111",
+  "display": "standalone"
+}

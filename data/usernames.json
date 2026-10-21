@@ -1,0 +1,33 @@
+{
+  "usernames": {
+    "jomi": {
+      "username": "jomi",
+      "displayUsername": "@jomi",
+      "walletAddress": "0x71C3D8bA4c15147C8f6BfFE760D79Ec4fD6292FA",
+      "createdAt": 1774000000000,
+      "isVerified": true,
+      "signature": "0xdemo_signature_jomi"
+    },
+    "alex": {
+      "username": "alex",
+      "displayUsername": "@alex",
+      "walletAddress": "0x24a81F268153406360A2f6B78d7890bF20c15B91",
+      "createdAt": 1774000000000,
+      "isVerified": true,
+      "signature": "0xdemo_signature_alex"
+    },
+    "mezo_treasury": {
+      "username": "mezo_treasury",
+      "displayUsername": "@mezo_treasury",
+      "walletAddress": "0x3161200000000000000000000000000000003161",
+      "createdAt": 1774000000000,
+      "isVerified": true,
+      "signature": "0xdemo_signature_treasury"
+    }
+  },
+  "wallets": {
+    "0x71c3d8ba4c15147c8b6bffe760d79ec4fd6292fa": "jomi",
+    "0x24a81f268153406360a2f6b78d7890bf20c15b91": "alex",
+    "0x3161200000000000000000000000000000003161": "mezo_treasury"
+  }
+}

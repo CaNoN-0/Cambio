@@ -1,0 +1,63 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default catch-all: deny everything unless explicitly permitted
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidUsernameId(name) {
+      return name is string && name.size() >= 3 && name.size() <= 20 && name.matches('^[a-z0-9_]{3,20}$');
+    }
+
+    function isValidAddress(addr) {
+      return addr is string && addr.size() == 42 && addr.matches('^0x[a-f0-9]{40}$');
+    }
+
+    // Global Unique Username Registry
+    // Document ID is strictly the canonical lowercase username (e.g. "jomi")
+    match /usernames/{username} {
+      allow get, list: if true;
+
+      allow create: if isValidUsernameId(username)
+        && request.resource.data.username == username
+        && isValidAddress(request.resource.data.ownerAddress)
+        && request.resource.data.keys().hasAll(['username', 'ownerAddress', 'createdAt'])
+        && request.resource.data.keys().hasOnly(['username', 'ownerAddress', 'createdAt', 'signature'])
+        && (request.resource.data.signature == null || request.resource.data.signature is string);
+
+      allow update: if isValidUsernameId(username)
+        && request.resource.data.username == username
+        && isValidAddress(request.resource.data.ownerAddress)
+        && request.resource.data.keys().hasAll(['username', 'ownerAddress', 'createdAt'])
+        && request.resource.data.keys().hasOnly(['username', 'ownerAddress', 'createdAt', 'signature'])
+        && (request.resource.data.signature == null || request.resource.data.signature is string);
+
+      allow delete: if isValidUsernameId(username);
+    }
+
+    // Reverse Lookup Registry
+    // Document ID is strictly the lowercase EVM wallet address (e.g. "0x71c...fa")
+    match /wallets/{walletAddress} {
+      allow get, list: if true;
+
+      allow create, update: if isValidAddress(walletAddress)
+        && request.resource.data.walletAddress == walletAddress
+        && isValidUsernameId(request.resource.data.username)
+        && request.resource.data.keys().hasAll(['walletAddress', 'username', 'updatedAt'])
+        && request.resource.data.keys().hasOnly(['walletAddress', 'username', 'updatedAt']);
+
+      allow delete: if isValidAddress(walletAddress);
+    }
+
+    // Real Wallet Transactions History
+    match /wallet_transactions/{walletAddress}/history/{txId} {
+      allow read, write: if isValidAddress(walletAddress);
+    }
+
+    // User Preferences (Preferred Currency, Display Options)
+    match /user_preferences/{walletAddress} {
+      allow read, write: if isValidAddress(walletAddress);
+    }
+  }
+}

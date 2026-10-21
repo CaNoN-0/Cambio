@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cambio</title>
+    <meta name="application-name" content="Cambio" />
+    <meta name="apple-mobile-web-app-title" content="Cambio" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="description" content="A monochrome editorial financial interface for MUSD settlement, payments, and transfers on the Mezo network." />
+    <meta property="og:site_name" content="Cambio" />
+    <meta property="og:title" content="Cambio" />
+    <meta property="og:description" content="A monochrome editorial financial interface for MUSD settlement, payments, and transfers on the Mezo network." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="icon" type="image/png" href="/logo.png" />
+    <link rel="apple-touch-icon" href="/logo.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+      (function() {
+        try {
+          // Sync theme synchronously to avoid flash — default to light mode on visit
+          var savedTheme = localStorage.getItem('cambio_theme');
+          var isDark = savedTheme === 'dark';
+          if (isDark) {
+            document.documentElement.classList.add('dark');
+            document.documentElement.setAttribute('data-theme', 'dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+            document.documentElement.setAttribute('data-theme', 'light');
+          }
+        } catch (e) {}
+
+        try {
+          function isIgnorableError(err) {
+            if (!err) return false;
+            var str = '';
+            try {
+              str = typeof err === 'string' ? err : (err.message || '') + ' ' + (err.code || '') + ' ' + JSON.stringify(err);
+            } catch (e) {
+              str = String(err);
+            }
+            return (
+              str.indexOf('4001') !== -1 ||
+              str.indexOf('at least one account') !== -1 ||
+              str.indexOf('must has at least one account') !== -1 ||
+              str.indexOf('AnalyticsSDKApiError') !== -1 ||
+              str.indexOf('Analytics SDK') !== -1 ||
+              str.indexOf('cca-lite') !== -1 ||
+              str.indexOf('User rejected') !== -1 ||
+              str.indexOf('User denied') !== -1
+            );
+          }
+
+          function isTelemetryUrl(url) {
+            if (!url) return false;
+            return (
+              url.indexOf('pulse.walletconnect') !== -1 ||
+              url.indexOf('cca-lite') !== -1 ||
+              url.indexOf('coinbase.com') !== -1 ||
+              url.indexOf('/analytics') !== -1 ||
+              url.indexOf('/telemetry') !== -1 ||
+              url.indexOf('/traces') !== -1 ||
+              url.indexOf('/events') !== -1 ||
+              url.indexOf('datadoghq') !== -1
+            );
+          }
+
+          // Catch unhandled promise rejections in capturing phase
+          window.addEventListener('unhandledrejection', function(event) {
+            if (isIgnorableError(event.reason)) {
+              event.preventDefault();
+              event.stopImmediatePropagation();
+            }
+          }, true);
+
+          // Catch errors in capturing phase
+          window.addEventListener('error', function(event) {
+            if (isIgnorableError(event.error || event.message)) {
+              event.preventDefault();
+              event.stopImmediatePropagation();
+            }
+          }, true);
+
+          // Filter console.error for ignorable wallet notifications
+          var origConsoleError = console.error;
+          console.error = function() {
+            var args = Array.prototype.slice.call(arguments);
+            var text = '';
+            try {
+              text = args.map(function(a) { return typeof a === 'string' ? a : JSON.stringify(a); }).join(' ');
+            } catch(e) {
+              text = String(args[0]);
+            }
+            if (isIgnorableError(text)) {
+              console.warn('Non-fatal wallet notice:', text);
+              return;
+            }
+            return origConsoleError.apply(console, arguments);
+          };
+
+          // Safeguard window.fetch against prototype getter conflicts and telemetry network blocks
+          var rawFetch = window.fetch;
+          var targets = [
+            typeof window !== 'undefined' ? window : null,
+            typeof Window !== 'undefined' ? Window.prototype : null,
+            typeof globalThis !== 'undefined' ? globalThis : null
+          ];
+
+          function safeFetch(input, init) {
+            var url = typeof input === 'string' ? input : (input && input.url ? input.url : '');
+            if (isTelemetryUrl(url)) {
+              return Promise.resolve(new Response(JSON.stringify({ success: true }), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' }
+              }));
+            }
+            return rawFetch.apply(this, arguments).catch(function(err) {
+              if (isTelemetryUrl(url) || url.indexOf('walletconnect') !== -1 || url.indexOf('web3modal') !== -1) {
+                return new Response(JSON.stringify({ success: true }), {
+                  status: 200,
+                  headers: { 'Content-Type': 'application/json' }
+                });
+              }
+              throw err;
+            });
+          }
+
+          for (var i = 0; i < targets.length; i++) {
+            var target = targets[i];
+            if (!target) continue;
+            var desc = Object.getOwnPropertyDescriptor(target, 'fetch');
+            if (desc && (!desc.writable || !desc.set)) {
+              Object.defineProperty(target, 'fetch', {
+                get: function() {
+                  return safeFetch;
+                },
+                set: function(val) {
+                  if (this !== target) {
+                    Object.defineProperty(this, 'fetch', {
+                      value: val,
+                      writable: true,
+                      configurable: true,
+                      enumerable: true
+                    });
+                  }
+                },
+                configurable: true,
+                enumerable: true
+              });
+            } else if (target === window) {
+              window.fetch = safeFetch;
+            }
+          }
+        } catch (e) {
+          console.warn('Env polyfill init:', e);
+        }
+      })();
+    </script>
+  </head>
+  <body class="bg-[#FAFAF8] dark:bg-[#0C0C0D] text-[#171717] dark:text-[#F5F5F7] antialiased selection:bg-[#315EF7]/20 selection:text-[#315EF7]">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
