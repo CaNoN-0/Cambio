@@ -1,15 +1,24 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import {defineConfig, Plugin} from 'vite';
-import { handleUsernameApiRequest } from './src/server/usernameApi';
+import { defineConfig, type Plugin } from 'vite';
 
-function usernameApiPlugin(): Plugin {
+/**
+ * Development only: mounts the same Express API app that server/index.ts serves in production,
+ * so `npm run dev` exercises the real identity code. Production does not depend on this plugin.
+ */
+function cambioApiDevPlugin(): Plugin {
   return {
-    name: 'username-api-plugin',
-    configureServer(server) {
+    name: 'cambio-api-dev',
+    apply: 'serve',
+    async configureServer(server) {
+      const { createApiApp } = await import('./server/app');
+      const { bootstrapIdentity } = await import('./server/bootstrap');
+      const { identity, error } = await bootstrapIdentity(process.env, 'development');
+      const api = createApiApp({ identity, identityInitError: error });
       server.middlewares.use((req, res, next) => {
-        handleUsernameApiRequest(req, res, next);
+        if (!req.url?.startsWith('/api/')) return next();
+        api(req as never, res as never, next);
       });
     },
   };
@@ -17,18 +26,19 @@ function usernameApiPlugin(): Plugin {
 
 export default defineConfig(() => {
   return {
-    plugins: [react(), tailwindcss(), usernameApiPlugin()],
+    plugins: [react(), tailwindcss(), cambioApiDevPlugin()],
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, '.'),
-        'cross-fetch': path.resolve(__dirname, 'src/shims/cross-fetch.ts'),
+        '@': path.resolve(import.meta.dirname, '.'),
+        'cross-fetch': path.resolve(import.meta.dirname, 'src/shims/cross-fetch.ts'),
       },
+    },
+    build: {
+      chunkSizeWarningLimit: 2000,
     },
     server: {
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
-      // Do not modify—file watching is disabled to prevent flickering during agent edits.
       hmr: process.env.DISABLE_HMR !== 'true',
-      // Disable file watching when DISABLE_HMR is true to save CPU during agent edits.
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
     },
   };

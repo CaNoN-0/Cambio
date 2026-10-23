@@ -1,28 +1,32 @@
 {
-  "name": "react-example",
+  "name": "cambio",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.2.0",
   "type": "module",
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
-    "build": "vite build",
-    "preview": "vite preview",
+    "build": "vite build && npm run build:server",
+    "build:server": "esbuild server/index.ts --bundle --platform=node --format=esm --target=node20 --packages=external --outfile=server.js",
+    "start": "NODE_ENV=production node server.js",
+    "preview": "npm run build && npm start",
     "clean": "rm -rf dist server.js",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:rules": "firebase emulators:exec --only firestore --project demo-cambio 'vitest run -c vitest.rules.config.ts'",
+    "verify:chain": "node scripts/verify-contracts.ts",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
-    "@google/genai": "^2.4.0",
     "@reown/appkit": "^1.8.24",
     "@reown/appkit-adapter-wagmi": "^1.8.24",
     "@tailwindcss/vite": "^4.3.3",
     "@tanstack/react-query": "^5.104.4",
     "@types/three": "^0.186.0",
     "@vitejs/plugin-react": "^6.1.1",
-    "dotenv": "^17.2.3",
     "express": "^4.21.2",
-    "firebase": "^13.0.0",
+    "firebase-admin": "14.5.0",
     "lucide-react": "^0.546.0",
-    "motion": "^12.23.24",
     "qrcode.react": "^4.2.0",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
@@ -32,14 +36,23 @@
     "wagmi": "^3.7.7"
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "6.0.0",
+    "@playwright/test": "1.64.1",
+    "@testing-library/react": "16.3.3",
+    "@types/express": "^4.17.21",
     "@types/node": "^22.14.0",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "autoprefixer": "^10.4.21",
     "esbuild": "^0.25.0",
+    "firebase": "^13.0.0",
+    "jsdom": "30.1.3",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.21.0",
     "typescript": "^7.0.2",
-    "@types/express": "^4.17.21"
+    "vitest": "5.0.5"
+  },
+  "engines": {
+    "node": ">=20.19"
   }
 }

@@ -1,595 +1,374 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  ArrowUpDown, 
-  ChevronDown, 
-  Settings2, 
-  Info, 
-  Clock, 
-  AlertCircle, 
-  Wallet, 
-  RefreshCw,
-  Sparkles,
-  ArrowRight,
-  TrendingUp,
-  TrendingDown,
-  Activity,
-  Zap,
-  ShieldCheck,
-  Check
-} from 'lucide-react';
-import { WalletState, SwapToken, SwapQuote } from '../types';
-import { getTokensWithBalances, calculateSwapQuote } from '../services/swapService';
-import { useLiveRates, calculateLivePairRate } from '../services/liveRatesService';
-import { TokenSelectModal } from './TokenSelectModal';
-import { SwapReviewModal } from './SwapReviewModal';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ArrowUpDown, Settings2, Wallet, RefreshCw, AlertTriangle, ExternalLink, Loader2, X, Info } from 'lucide-react';
+import { useReadContract } from 'wagmi';
+import type { Address } from 'viem';
+import type { WalletState } from '../types';
+import { erc20Abi } from '../config/abis';
+import { explorerAddressUrl, findPool, type MezoChainConfig } from '../config/chains';
+import { formatTokenDisplay, formatUnitsExact, parseTokenAmount, bpsOf } from '../lib/amounts';
+import { isQuoteExpired, QUOTE_TTL_MS, type SwapQuote, type SwapSymbol } from '../lib/swap';
+import { isTerminal, type TxPhase } from '../lib/transactions';
+import { useSwapExecution, useSwapQuote } from '../hooks/useSwap';
+import { NetworkGuard } from './NetworkGuard';
+import { TxStatusPanel } from './TxStatusPanel';
 import { HalftonePattern } from './HalftonePattern';
-import { useCurrency } from '../context/CurrencyContext';
+import { shortenAddress } from '../utils/format';
 import btcLogo from '@/btc.png';
 import mezoLogo from '@/mezo.png';
 import usdcLogo from '@/usdc.png';
 
+const ICONS: Record<SwapSymbol, string> = { MUSD: mezoLogo, BTC: btcLogo, mUSDC: usdcLogo, mUSDT: usdcLogo };
+const SYMBOLS: SwapSymbol[] = ['MUSD', 'BTC', 'mUSDC', 'mUSDT'];
+const SLIPPAGE_OPTIONS = [10, 50, 100];
+
 interface SwapViewProps {
   wallet: WalletState;
   onConnectWallet: () => void;
-  onOpenNetworks: () => void;
-  onSwapCompleted?: (quote: SwapQuote) => void;
+  onSwapSettled?: (phase: TxPhase, label: string) => void;
 }
 
-export const SwapView: React.FC<SwapViewProps> = ({
-  wallet,
-  onConnectWallet,
-  onOpenNetworks,
-  onSwapCompleted,
-}) => {
-  // Live rates polling every 15 seconds
-  const { rates, isLoading: isRatesLoading, lastRefreshedAt, refreshRates, isLive } = useLiveRates(15000);
-
-  // Available tokens on Mezo with live rates injected
-  const tokens = useMemo(() => getTokensWithBalances(wallet, rates), [wallet, rates]);
-
-  // Selected input and output tokens
-  const [inputToken, setInputToken] = useState<SwapToken>(() => tokens[0] || {
-    symbol: 'MUSD',
-    name: 'Mezo USD',
-    decimals: 18,
-    balance: wallet.balanceMusd,
-    usdPrice: 1.00,
-    change24h: 0.00,
-    icon: mezoLogo,
+function useTokenBalance(chain: MezoChainConfig | null, owner: Address | null, sym: SwapSymbol) {
+  const token = chain?.tokens[sym];
+  return useReadContract({
+    address: token?.address,
+    abi: erc20Abi,
+    functionName: 'balanceOf',
+    args: owner ? [owner] : undefined,
+    chainId: chain?.chainId,
+    query: { enabled: !!token && !!owner, refetchInterval: 30_000 },
   });
+}
 
-  const [outputToken, setOutputToken] = useState<SwapToken>(() => tokens[1] || {
-    symbol: 'BTC',
-    name: 'Bitcoin',
-    decimals: 18,
-    balance: 0.45,
-    usdPrice: 82850.00,
-    change24h: 1.25,
-    icon: btcLogo,
-  });
-
-  // Amounts
-  const [inputAmount, setInputAmount] = useState<string>('');
-  const [slippage, setSlippage] = useState<number>(0.5);
-  const [showSlippageMenu, setShowSlippageMenu] = useState<boolean>(false);
-  const [showInverseRate, setShowInverseRate] = useState<boolean>(false);
-  const [rateFlash, setRateFlash] = useState<boolean>(false);
-
-  // Modals
-  const [isInputModalOpen, setIsInputModalOpen] = useState(false);
-  const [isOutputModalOpen, setIsOutputModalOpen] = useState(false);
-  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
-
-  // Global Preferred Currency
-  const { preferredCurrency, formatTokenFiat } = useCurrency();
-
-  // Seconds since last refresh counter
-  const [secondsAgo, setSecondsAgo] = useState(0);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setSecondsAgo(Math.max(0, Math.floor((Date.now() - lastRefreshedAt) / 1000)));
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [lastRefreshedAt]);
-
-  // Visual pulse flash whenever rates refresh
-  useEffect(() => {
-    setRateFlash(true);
-    const flashTimer = setTimeout(() => setRateFlash(false), 900);
-    return () => clearTimeout(flashTimer);
-  }, [lastRefreshedAt]);
-
-  // Sync token prices and balances when wallet or rates update
-  useEffect(() => {
-    const updated = getTokensWithBalances(wallet, rates);
-    const updatedIn = updated.find((t) => t.symbol === inputToken.symbol);
-    const updatedOut = updated.find((t) => t.symbol === outputToken.symbol);
-    if (updatedIn) setInputToken(updatedIn);
-    if (updatedOut) setOutputToken(updatedOut);
-  }, [wallet.balanceMusd, wallet.isConnected, rates]);
-
-  // Numeric amount
-  const numericInput = parseFloat(inputAmount) || 0;
-
-  // Active Quote calculated with current live market rates
-  const quote = useMemo(
-    () => calculateSwapQuote(inputToken, outputToken, numericInput, slippage, rates),
-    [inputToken, outputToken, numericInput, slippage, rates]
+function TokenPicker({ value, options, disabledReason, onChange, label }: { value: SwapSymbol; options: SwapSymbol[]; disabledReason: (s: SwapSymbol) => string | null; onChange: (s: SwapSymbol) => void; label: string }) {
+  return (
+    <div role="radiogroup" aria-label={label} className="flex flex-wrap gap-1.5">
+      {options.map((s) => {
+        const reason = disabledReason(s);
+        return (
+          <button
+            key={s}
+            type="button"
+            role="radio"
+            aria-checked={value === s}
+            disabled={!!reason}
+            title={reason ?? undefined}
+            onClick={() => onChange(s)}
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-semibold transition-all disabled:opacity-35 disabled:cursor-not-allowed ${
+              value === s ? 'bg-[#111111] text-white dark:bg-[#FFFFFF] dark:text-[#111111] border-[#111111] dark:border-[#FFFFFF]' : 'bg-white dark:bg-[#1A1A1D] border-[#E2E2E0] dark:border-[#26262B] text-[#111111] dark:text-[#FFFFFF]'
+            }`}
+          >
+            <img src={ICONS[s]} alt="" className="w-4 h-4 rounded-full object-cover" />
+            {s}
+          </button>
+        );
+      })}
+    </div>
   );
+}
 
-  // Preferred Currency Fiat Values
-  const inputFiat = inputToken.usdPrice && numericInput > 0
-    ? formatTokenFiat(numericInput, inputToken.symbol, inputToken.usdPrice)
-    : null;
+export const SwapView: React.FC<SwapViewProps> = ({ wallet, onConnectWallet, onSwapSettled }) => {
+  const chain = wallet.chain;
+  const isDemo = wallet.dataMode === 'demo';
+  const [tokenIn, setTokenIn] = useState<SwapSymbol>('MUSD');
+  const [tokenOut, setTokenOut] = useState<SwapSymbol>('BTC');
+  const [amountInput, setAmountInput] = useState('');
+  const [slippageBps, setSlippageBps] = useState(50);
+  const [showSlippage, setShowSlippage] = useState(false);
+  const [reviewing, setReviewing] = useState<SwapQuote | null>(null);
+  const [now, setNow] = useState(Date.now());
+  const exec = useSwapExecution();
 
-  const outputFiat = outputToken.usdPrice && quote && quote.estimatedOutput > 0
-    ? formatTokenFiat(quote.estimatedOutput, outputToken.symbol, outputToken.usdPrice)
-    : null;
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
 
-  // Live Pair conversion info
-  const pairRate = useMemo(
-    () => calculateLivePairRate(inputToken.symbol, outputToken.symbol, rates),
-    [inputToken.symbol, outputToken.symbol, rates]
-  );
+  const decimalsIn = chain?.tokens[tokenIn].decimals ?? 18;
+  const parsed = useMemo(() => (amountInput ? parseTokenAmount(amountInput, decimalsIn) : null), [amountInput, decimalsIn]);
+  const amountIn = parsed?.ok ? parsed.value : null;
+  const { quote, error: quoteError, loading: quoteLoading, refresh } = useSwapQuote(chain, tokenIn, tokenOut, amountIn, slippageBps);
+  const balIn = useTokenBalance(chain, wallet.address, tokenIn);
+  const balOut = useTokenBalance(chain, wallet.address, tokenOut);
+  const balanceIn = typeof balIn.data === 'bigint' ? balIn.data : null;
 
-  // Invert tokens (swap direction)
-  const handleInvertTokens = () => {
-    const prevInput = inputToken;
-    const prevOutput = outputToken;
-    setInputToken(prevOutput);
-    setOutputToken(prevInput);
-    if (quote && quote.estimatedOutput > 0) {
-      setInputAmount(quote.estimatedOutput.toFixed(4));
+  // Keep tokenOut valid for the selected input.
+  useEffect(() => {
+    if (chain && !findPool(chain, tokenIn, tokenOut)) {
+      const firstPair = SYMBOLS.find((s) => s !== tokenIn && findPool(chain, tokenIn, s));
+      if (firstPair) setTokenOut(firstPair);
     }
+  }, [chain, tokenIn, tokenOut]);
+
+  // Report settled swaps once.
+  useEffect(() => {
+    if (reviewing && isTerminal(exec.phase) && exec.phase.phase !== 'rejected' && exec.phase.phase !== 'failed') {
+      onSwapSettled?.(exec.phase, `${formatTokenDisplay(reviewing.amountIn, reviewing.tokenIn.decimals)} ${reviewing.tokenIn.symbol} → ${reviewing.tokenOut.symbol}`);
+      if (exec.phase.phase === 'confirmed') {
+        balIn.refetch();
+        balOut.refetch();
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [exec.phase]);
+
+  const insufficient = amountIn !== null && balanceIn !== null && amountIn > balanceIn;
+  const expired = quote ? isQuoteExpired(quote, now) : false;
+  const ageSec = quote ? Math.max(0, Math.floor((now - quote.fetchedAt) / 1000)) : 0;
+  const highImpact = quote?.priceImpactBps != null && quote.priceImpactBps > 300;
+  const severeImpact = quote?.priceImpactBps != null && quote.priceImpactBps > 1500;
+
+  const rateLabel = (q: SwapQuote) => {
+    // 1 tokenIn = X tokenOut, exact bigint ratio scaled to tokenOut decimals.
+    const oneIn = 10n ** BigInt(q.tokenIn.decimals);
+    const perUnit = (q.amountOut * oneIn) / q.amountIn;
+    return `1 ${q.tokenIn.symbol} ≈ ${formatTokenDisplay(perUnit, q.tokenOut.decimals, { maxFractionDigits: q.tokenOut.symbol === 'BTC' ? 8 : 4 })} ${q.tokenOut.symbol}`;
   };
 
-  // Quick Amount Selectors
-  const handleSetMax = () => {
-    if (inputToken.balance > 0) {
-      const maxVal = inputToken.isNative ? Math.max(0, inputToken.balance - 0.0001) : inputToken.balance;
-      setInputAmount(maxVal.toString());
-    }
-  };
+  const canReview =
+    !isDemo && wallet.isConnected && !!chain && !!quote && !expired && !insufficient && !severeImpact && !quoteLoading && !!wallet.address;
 
-  const handleSetHalf = () => {
-    if (inputToken.balance > 0) {
-      setInputAmount((inputToken.balance / 2).toFixed(4));
-    }
-  };
-
-  // Validation States
-  const isWrongNetwork = wallet.isConnected && !wallet.isMezoNetwork;
-  const isInsufficientBalance = wallet.isConnected && numericInput > inputToken.balance;
-  const isAmountValid = numericInput > 0;
-  const isPairValid = inputToken.symbol !== outputToken.symbol;
-
-  // Format currency helpers
-  const formatPrice = (val?: number) => {
-    if (val === undefined || isNaN(val)) return '$0.00';
-    if (val >= 1000) {
-      return `$${val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-    }
-    if (val >= 1) {
-      return `$${val.toFixed(2)}`;
-    }
-    return `$${val.toFixed(4)}`;
-  };
-
-  const formatRate = (r: number) => {
-    if (r >= 1000) return r.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    if (r >= 1) return r.toFixed(4);
-    if (r >= 0.0001) return r.toFixed(6);
-    return r.toFixed(8);
-  };
+  const disabledOut = (s: SwapSymbol) => (s === tokenIn ? 'Same token' : chain && !findPool(chain, tokenIn, s) ? `No verified ${tokenIn}/${s} pool` : null);
 
   return (
     <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-200">
-      {/* Page Header with Live Rates Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-[#E2E2E0] dark:border-[#26262B]">
         <div>
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#111111] dark:text-[#FFFFFF] font-sans">
-              Swap tokens
-            </h1>
-          </div>
-          <p className="mt-1.5 text-sm text-[#555555] dark:text-[#A0A0A0] font-sans">
-            Real-time market rates synced across Mezo, Coinbase, and Binance.
-          </p>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#111111] dark:text-[#FFFFFF]">Swap</h1>
+          <p className="mt-1.5 text-sm text-[#555555] dark:text-[#A0A0A0]">Quotes and execution through Mezo’s official router and pools. You sign every step in your wallet.</p>
         </div>
-
-        {/* Live Status, Refresh & Slippage Pill */}
         <div className="flex items-center gap-2">
-          {/* Manual Rates Refresh Button */}
           <button
             type="button"
-            onClick={() => refreshRates()}
-            disabled={isRatesLoading}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-mono font-medium border border-[#E2E2E0] dark:border-[#26262B] bg-white dark:bg-[#141416] hover:bg-[#F0F0EE] dark:hover:bg-[#1C1C1F] text-[#555555] hover:text-[#111111] dark:text-[#A0A0A0] dark:hover:text-[#FFFFFF] transition-all cursor-pointer shadow-xs disabled:opacity-50"
-            title="Force refresh live rates"
+            onClick={refresh}
+            disabled={quoteLoading || !amountIn}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-mono border border-[#E2E2E0] dark:border-[#26262B] bg-white dark:bg-[#141416] disabled:opacity-50"
+            aria-label="Refresh quote"
           >
-            <RefreshCw className={`w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 ${isRatesLoading ? 'animate-spin' : ''}`} />
-            <span>
-              {isRatesLoading ? 'Syncing...' : secondsAgo < 5 ? 'Just updated' : `${secondsAgo}s ago`}
-            </span>
+            <RefreshCw className={`w-3.5 h-3.5 ${quoteLoading ? 'animate-spin' : ''}`} />
+            {quote ? `${ageSec}s old` : 'Refresh'}
           </button>
-
-          {/* Slippage Settings Button */}
           <div className="relative">
-            <button
-              onClick={() => setShowSlippageMenu(!showSlippageMenu)}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-mono font-medium border border-[#E2E2E0] dark:border-[#26262B] bg-white dark:bg-[#141416] hover:bg-[#F0F0EE] dark:hover:bg-[#1C1C1F] text-[#777777] hover:text-[#111111] dark:text-[#A0A0A0] dark:hover:text-[#FFFFFF] transition-all"
-              title="Slippage tolerance"
-            >
-              <Settings2 className="w-3.5 h-3.5" />
-              <span>{slippage}%</span>
+            <button type="button" onClick={() => setShowSlippage((v) => !v)} aria-expanded={showSlippage} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-mono border border-[#E2E2E0] dark:border-[#26262B] bg-white dark:bg-[#141416]">
+              <Settings2 className="w-3.5 h-3.5" /> {(slippageBps / 100).toFixed(2)}% slippage
             </button>
-
-            {/* Slippage popover */}
-            {showSlippageMenu && (
-              <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-[#141416] rounded-2xl shadow-xl border border-[#E2E2E0] dark:border-[#26262B] p-3 text-xs z-30 space-y-2 animate-in fade-in zoom-in-95 duration-150">
-                <span className="text-[10px] font-mono uppercase tracking-wider text-[#777777] dark:text-[#A0A0A0] block">
-                  Slippage Tolerance
-                </span>
+            {showSlippage && (
+              <div className="absolute right-0 mt-2 w-52 bg-white dark:bg-[#141416] rounded-2xl shadow-xl border border-[#E2E2E0] dark:border-[#26262B] p-3 text-xs z-30 space-y-2">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-[#777777] block">Max price movement</span>
                 <div className="grid grid-cols-3 gap-1.5">
-                  {[0.1, 0.5, 1.0].map((s) => (
-                    <button
-                      key={s}
-                      onClick={() => {
-                        setSlippage(s);
-                        setShowSlippageMenu(false);
-                      }}
-                      className={`py-1.5 rounded-lg text-xs font-mono text-center border transition-all ${
-                        slippage === s
-                          ? 'bg-[#111111] text-white dark:bg-[#FFFFFF] dark:text-[#111111] border-[#111111] dark:border-[#FFFFFF]'
-                          : 'bg-[#F5F5F3] dark:bg-[#1A1A1D] border-transparent text-[#777777] dark:text-[#A0A0A0] hover:border-[#E2E2E0] dark:hover:border-[#26262B]'
-                      }`}
-                    >
-                      {s}%
+                  {SLIPPAGE_OPTIONS.map((s) => (
+                    <button key={s} type="button" onClick={() => { setSlippageBps(s); setShowSlippage(false); }} className={`py-1.5 rounded-lg font-mono border ${slippageBps === s ? 'bg-[#111111] text-white dark:bg-[#FFFFFF] dark:text-[#111111]' : 'bg-[#F5F5F3] dark:bg-[#1A1A1D] border-transparent'}`}>
+                      {(s / 100).toFixed(1)}%
                     </button>
                   ))}
                 </div>
+                <p className="text-[10px] text-[#777777]">The router reverts the swap if you would receive less than the minimum.</p>
               </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* Main Swap Interface Layout: Swap Card on Left, Live Rate Intelligence on Right */}
+      {isDemo && (
+        <div role="status" className="p-3 rounded-2xl bg-violet-500/10 border border-violet-500/30 text-violet-800 dark:text-violet-300 text-xs">
+          Demo mode does not simulate swaps. Quotes below are real (read-only) router quotes; switch to real data to execute.
+        </div>
+      )}
+
       <div className="max-w-4xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        <div className="lg:col-span-7 xl:col-span-7 relative overflow-hidden bg-white dark:bg-[#141416] rounded-3xl border border-[#E2E2E0] dark:border-[#26262B] p-5 sm:p-7 shadow-xs space-y-4">
-          {/* Halftone decorative corner accent */}
-          <div className="absolute right-0 top-0 w-36 h-36 pointer-events-none opacity-5 dark:opacity-10">
-            <HalftonePattern variant="corner" className="w-full h-full" />
-          </div>
+        <div className="lg:col-span-7 relative overflow-hidden bg-white dark:bg-[#141416] rounded-3xl border border-[#E2E2E0] dark:border-[#26262B] p-5 sm:p-7 shadow-xs space-y-4">
+          <HalftonePattern variant="corner" className="absolute right-0 top-0 w-32 h-32 opacity-10 pointer-events-none" />
+          {!wallet.isConnected && (
+            <button type="button" onClick={onConnectWallet} className="relative z-10 w-full p-3 rounded-2xl bg-[#F0F0EE] dark:bg-[#1A1A1D] border border-[#E2E2E0] dark:border-[#26262B] text-xs flex items-center justify-center gap-2 font-semibold">
+              <Wallet className="w-4 h-4" /> Connect a wallet to swap
+            </button>
+          )}
+          <NetworkGuard wallet={wallet} purpose="to swap on Mezo" className="relative z-10" />
 
-          {/* Section: "You pay" */}
-          <div className="relative z-10 p-4 sm:p-4.5 rounded-2xl bg-[#F5F5F3] dark:bg-[#1A1A1D] border border-[#E2E2E0] dark:border-[#26262B] space-y-2.5">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-[10px] font-mono uppercase tracking-wider text-[#777777] dark:text-[#A0A0A0]">
-                You pay
-              </span>
+          {chain && (
+            <>
+              <div className="relative z-10 p-4 rounded-2xl bg-[#F5F5F3] dark:bg-[#1A1A1D] border border-[#E2E2E0] dark:border-[#26262B] space-y-3">
+                <div className="flex items-center justify-between text-xs">
+                  <label htmlFor="swap-amount" className="font-mono uppercase tracking-wider text-[#777777] text-[10px]">You pay</label>
+                  <span className="font-mono text-[11px] text-[#777777]">
+                    Balance: {balanceIn !== null ? `${formatTokenDisplay(balanceIn, decimalsIn, { maxFractionDigits: 6 })} ${tokenIn}` : wallet.isConnected ? (balIn.isError ? 'unavailable' : '…') : '—'}
+                    {balanceIn !== null && balanceIn > 0n && (
+                      <button
+                        type="button"
+                        onClick={() => setAmountInput(formatUnitsExact(chain.tokens[tokenIn].isNative ? balanceIn - bpsOf(balanceIn, 100) : balanceIn, decimalsIn))}
+                        className="ml-2 font-bold text-[#111111] dark:text-[#FFFFFF] hover:underline"
+                        title={chain.tokens[tokenIn].isNative ? 'Keeps 1% of your BTC for network fees' : undefined}
+                      >
+                        Max
+                      </button>
+                    )}
+                  </span>
+                </div>
+                <input
+                  id="swap-amount"
+                  type="text"
+                  inputMode="decimal"
+                  autoComplete="off"
+                  placeholder="0.0"
+                  value={amountInput}
+                  onChange={(e) => setAmountInput(e.target.value.replace(',', '.'))}
+                  aria-invalid={!!parsed && !parsed.ok}
+                  className="w-full bg-transparent text-3xl font-bold font-mono text-[#111111] dark:text-[#FFFFFF] outline-none tabular-nums"
+                />
+                {parsed && !parsed.ok && <p className="text-[11px] text-red-600">{parsed.error}</p>}
+                {insufficient && <p className="text-[11px] text-red-600">Exceeds your {tokenIn} balance.</p>}
+                <TokenPicker label="Token to pay" value={tokenIn} options={SYMBOLS} disabledReason={() => null} onChange={(s) => { setTokenIn(s); setAmountInput(''); }} />
+              </div>
 
-              {/* Balance & Quick Buttons */}
-              <div className="flex items-center gap-1.5 font-mono text-[11px]">
-                <span className="text-[#777777] dark:text-[#A0A0A0]">Balance:</span>
-                <span className="font-semibold text-[#111111] dark:text-[#FFFFFF]">
-                  {inputToken.balance.toLocaleString('en-US', {
-                    minimumFractionDigits: inputToken.decimals > 8 ? 4 : 2,
-                    maximumFractionDigits: 6,
-                  })}
-                </span>
-                {inputToken.balance > 0 && (
-                  <div className="flex items-center gap-1 ml-1">
+              <div className="relative z-10 flex justify-center -my-2">
+                <button
+                  type="button"
+                  onClick={() => { setTokenIn(tokenOut); setTokenOut(tokenIn); setAmountInput(''); }}
+                  className="p-2.5 rounded-xl bg-white dark:bg-[#141416] border border-[#E2E2E0] dark:border-[#26262B] shadow-xs hover:rotate-180 transition-transform duration-300"
+                  aria-label="Swap direction"
+                >
+                  <ArrowUpDown className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="relative z-10 p-4 rounded-2xl bg-[#F5F5F3] dark:bg-[#1A1A1D] border border-[#E2E2E0] dark:border-[#26262B] space-y-3">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-mono uppercase tracking-wider text-[#777777] text-[10px]">You receive (estimated)</span>
+                  <span className="font-mono text-[11px] text-[#777777]">
+                    Balance: {typeof balOut.data === 'bigint' ? `${formatTokenDisplay(balOut.data, chain.tokens[tokenOut].decimals, { maxFractionDigits: 6 })} ${tokenOut}` : '—'}
+                  </span>
+                </div>
+                <div className="text-3xl font-bold font-mono text-[#111111] dark:text-[#FFFFFF] tabular-nums min-h-[40px]" aria-live="polite">
+                  {quoteLoading && !quote ? <Loader2 className="w-6 h-6 animate-spin opacity-50" /> : quote ? formatTokenDisplay(quote.amountOut, quote.tokenOut.decimals, { maxFractionDigits: quote.tokenOut.symbol === 'BTC' ? 8 : 6 }) : '0.0'}
+                </div>
+                <TokenPicker label="Token to receive" value={tokenOut} options={SYMBOLS} disabledReason={disabledOut} onChange={setTokenOut} />
+              </div>
+
+              {quoteError && (
+                <div role="alert" className="relative z-10 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-xs text-red-600 dark:text-red-400 flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 shrink-0" /> {quoteError}
+                </div>
+              )}
+
+              {quote && (
+                <div className="relative z-10 p-4 rounded-2xl border border-[#E2E2E0] dark:border-[#26262B] text-xs space-y-1.5">
+                  <Row label="Rate">{rateLabel(quote)}</Row>
+                  <Row label="Minimum received">{formatTokenDisplay(quote.minAmountOut, quote.tokenOut.decimals, { maxFractionDigits: 8 })} {quote.tokenOut.symbol}</Row>
+                  <Row label="Pool fee (on-chain)">{(quote.feeBps / 100).toFixed(2)}%</Row>
+                  <Row label="Price impact">
+                    <span className={severeImpact ? 'text-red-600 font-bold' : highImpact ? 'text-amber-600 font-semibold' : ''}>
+                      {quote.priceImpactBps === null ? 'Unknown' : quote.priceImpactBps < 1 ? '< 0.01%' : `${(quote.priceImpactBps / 100).toFixed(2)}%`}
+                    </span>
+                  </Row>
+                  <Row label="Quote source">
+                    Router.getAmountsOut · block {quote.blockNumber.toString()} · {expired ? <span className="text-amber-600">expired</span> : `${Math.max(0, Math.ceil((QUOTE_TTL_MS - (now - quote.fetchedAt)) / 1000))}s left`}
+                  </Row>
+                  <Row label="Router">
+                    <a href={explorerAddressUrl(chain, chain.router)} target="_blank" rel="noopener noreferrer" className="font-mono hover:underline inline-flex items-center gap-1">
+                      {shortenAddress(chain.router)} <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </Row>
+                  {severeImpact && <p className="pt-1 text-red-600">Price impact is above 15%. This pool is too shallow for this amount; swapping is disabled.</p>}
+                  {highImpact && !severeImpact && <p className="pt-1 text-amber-600">High price impact. You would receive noticeably less than the pool’s current price.</p>}
+                </div>
+              )}
+
+              <button
+                type="button"
+                disabled={!canReview}
+                onClick={() => { exec.reset(); setReviewing(quote); }}
+                className="relative z-10 w-full py-4 rounded-2xl bg-[#111111] text-white dark:bg-[#FFFFFF] dark:text-[#111111] text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {isDemo ? 'Swaps are disabled in demo mode' : !wallet.isConnected ? 'Connect a wallet' : !amountIn ? 'Enter an amount' : insufficient ? `Insufficient ${tokenIn}` : expired ? 'Quote expired — refresh' : quoteLoading && !quote ? 'Fetching quote…' : 'Review swap'}
+              </button>
+            </>
+          )}
+        </div>
+
+        <div className="lg:col-span-5 bg-white dark:bg-[#141416] rounded-3xl border border-[#E2E2E0] dark:border-[#26262B] p-6 space-y-3 text-xs text-[#555555] dark:text-[#A0A0A0]">
+          <h2 className="text-sm font-bold text-[#111111] dark:text-[#FFFFFF] flex items-center gap-2"><Info className="w-4 h-4" /> What this swap does</h2>
+          <ul className="space-y-2 list-disc list-inside">
+            <li>Routes through a single verified Mezo pool (MUSD/BTC, MUSD/mUSDC or MUSD/mUSDT).</li>
+            <li>If needed, first asks you to approve exactly the amount you are swapping — never an unlimited allowance.</li>
+            <li>Re-quotes and simulates on-chain right before you sign; aborts if the price moved past your slippage.</li>
+            <li>The confirmation shows what you actually received, read from the transaction receipt.</li>
+          </ul>
+          {chain?.isTestnet && <p className="pt-2 text-[11px]">Testnet pools hold test liquidity and their prices may not track real markets.</p>}
+        </div>
+      </div>
+
+      {reviewing && chain && wallet.address && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4" role="dialog" aria-modal="true" aria-labelledby="swap-review-title" onClick={() => !exec.busy && setReviewing(null)}>
+          <div className="relative w-full max-w-md bg-white dark:bg-[#141416] rounded-3xl border border-[#E2E2E0] dark:border-[#26262B] p-6 space-y-4 max-h-[92vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h2 id="swap-review-title" className="text-base font-bold">{exec.phase.phase === 'idle' ? 'Review swap' : 'Swap status'}</h2>
+              <button type="button" onClick={() => setReviewing(null)} disabled={exec.busy} className="p-1.5 rounded-xl hover:bg-[#F0F0EE] dark:hover:bg-[#1C1C1F] disabled:opacity-40" aria-label="Close">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            {exec.phase.phase === 'idle' ? (
+              <>
+                <div className="p-4 rounded-2xl bg-[#F5F5F3] dark:bg-[#1A1A1D] text-xs space-y-1.5">
+                  <Row label="You pay">{formatTokenDisplay(reviewing.amountIn, reviewing.tokenIn.decimals, { maxFractionDigits: 8 })} {reviewing.tokenIn.symbol}</Row>
+                  <Row label="Expected">{formatTokenDisplay(reviewing.amountOut, reviewing.tokenOut.decimals, { maxFractionDigits: 8 })} {reviewing.tokenOut.symbol}</Row>
+                  <Row label="Minimum">{formatTokenDisplay(reviewing.minAmountOut, reviewing.tokenOut.decimals, { maxFractionDigits: 8 })} {reviewing.tokenOut.symbol}</Row>
+                  <Row label="Slippage">{(reviewing.slippageBps / 100).toFixed(2)}%</Row>
+                  <Row label="Pool fee">{(reviewing.feeBps / 100).toFixed(2)}%</Row>
+                  <Row label="Network">{chain.name} (chain {chain.chainId}){!chain.isTestnet && <span className="text-red-600 font-semibold"> · real funds</span>}</Row>
+                </div>
+                {isQuoteExpired(reviewing, now) ? (
+                  <div className="space-y-2">
+                    <p className="text-xs text-amber-600">This quote is older than 30 seconds. Review the latest on-chain quote before signing.</p>
                     <button
                       type="button"
-                      onClick={handleSetHalf}
-                      className="px-1.5 py-0.5 rounded text-[10px] bg-white dark:bg-[#141416] border border-[#E2E2E0] dark:border-[#26262B] text-[#777777] hover:text-[#111111] dark:hover:text-[#FFFFFF] transition-all cursor-pointer"
+                      onClick={() => quote && !isQuoteExpired(quote, now) && setReviewing(quote)}
+                      disabled={!quote || isQuoteExpired(quote, now)}
+                      className="w-full py-3.5 rounded-2xl border border-[#E2E2E0] dark:border-[#26262B] text-sm font-semibold disabled:opacity-50"
                     >
-                      HALF
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleSetMax}
-                      className="px-1.5 py-0.5 rounded text-[10px] bg-[#111111] dark:bg-[#FFFFFF] text-white dark:text-[#111111] font-semibold transition-all hover:opacity-90 cursor-pointer"
-                    >
-                      MAX
+                      {quote && !isQuoteExpired(quote, now) ? 'Load latest quote' : 'Waiting for a fresh quote…'}
                     </button>
                   </div>
-                )}
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between gap-3">
-              <input
-                type="number"
-                step="any"
-                min="0"
-                placeholder="0.0"
-                value={inputAmount}
-                onChange={(e) => setInputAmount(e.target.value)}
-                className="w-full bg-transparent text-2xl sm:text-3xl font-bold font-mono text-[#111111] dark:text-[#FFFFFF] focus:outline-none placeholder:text-[#AAAAAA] dark:placeholder:text-[#555555]"
-              />
-
-              {/* Input Token Selector Button */}
-              <button
-                type="button"
-                onClick={() => setIsInputModalOpen(true)}
-                className="flex items-center gap-2 pl-2.5 pr-3 py-2 rounded-xl bg-white dark:bg-[#202024] border border-[#E2E2E0] dark:border-[#26262B] hover:border-[#111111] dark:hover:border-[#FFFFFF] shadow-xs text-xs font-bold text-[#111111] dark:text-[#FFFFFF] transition-all shrink-0 cursor-pointer"
-              >
-                <div className="w-5 h-5 rounded-full bg-[#111111] text-white dark:bg-[#FFFFFF] dark:text-[#111111] flex items-center justify-center font-mono text-[9px] overflow-hidden shrink-0">
-                  {inputToken.icon ? (
-                    <img src={inputToken.icon} alt={inputToken.symbol} className="w-full h-full object-cover" />
-                  ) : inputToken.symbol === 'USDC' ? (
-                    <img src={usdcLogo} alt={inputToken.symbol} className="w-full h-full object-cover" />
-                  ) : inputToken.symbol === 'MUSD' || inputToken.symbol.toLowerCase().includes('mezo') ? (
-                    <img src={mezoLogo} alt={inputToken.symbol} className="w-full h-full object-cover" />
-                  ) : inputToken.symbol.toLowerCase().includes('btc') ? (
-                    <img src={btcLogo} alt={inputToken.symbol} className="w-full h-full object-cover" />
-                  ) : (
-                    inputToken.symbol.slice(0, 2)
-                  )}
-                </div>
-                <span>{inputToken.symbol}</span>
-                <ChevronDown className="w-3.5 h-3.5 text-[#777777] dark:text-[#A0A0A0]" />
-              </button>
-            </div>
-
-            <div className="flex items-center justify-between text-[11px] font-mono text-[#777777] dark:text-[#A0A0A0]">
-              <span>
-                {inputFiat
-                  ? `≈ ${inputFiat.formatted} ${preferredCurrency}`
-                  : `0.00 ${preferredCurrency}`}
-              </span>
-              <span className="text-[10px] text-[#999999] dark:text-[#666666]">
-                1 {inputToken.symbol} = {formatPrice(inputToken.usdPrice)}
-              </span>
-            </div>
-          </div>
-
-          {/* Swap-Direction Button */}
-          <div className="relative flex justify-center -my-2 z-20">
-            <button
-              type="button"
-              onClick={handleInvertTokens}
-              className="group p-2.5 rounded-2xl bg-white dark:bg-[#141416] border border-[#E2E2E0] dark:border-[#26262B] hover:border-[#111111] dark:hover:border-[#FFFFFF] shadow-sm text-[#111111] dark:text-[#FFFFFF] hover:rotate-180 transition-all duration-300 active:scale-90 cursor-pointer"
-              aria-label="Invert swap tokens"
-              title="Switch swap tokens"
-            >
-              <ArrowUpDown className="w-4 h-4" />
-            </button>
-          </div>
-
-          {/* Section: "You receive" */}
-          <div className="relative z-10 p-4 sm:p-4.5 rounded-2xl bg-[#F5F5F3] dark:bg-[#1A1A1D] border border-[#E2E2E0] dark:border-[#26262B] space-y-2.5">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-[10px] font-mono uppercase tracking-wider text-[#777777] dark:text-[#A0A0A0]">
-                You receive (Estimated)
-              </span>
-
-              {/* Output Balance */}
-              <div className="flex items-center gap-1.5 font-mono text-[11px]">
-                <span className="text-[#777777] dark:text-[#A0A0A0]">Balance:</span>
-                <span className="font-semibold text-[#111111] dark:text-[#FFFFFF]">
-                  {outputToken.balance.toLocaleString('en-US', {
-                    minimumFractionDigits: outputToken.decimals > 8 ? 4 : 2,
-                    maximumFractionDigits: 6,
-                  })}
-                </span>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between gap-3">
-              <div className="w-full text-2xl sm:text-3xl font-bold font-mono text-[#111111] dark:text-[#FFFFFF] truncate">
-                {quote ? (
-                  quote.estimatedOutput >= 1000
-                    ? quote.estimatedOutput.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })
-                    : quote.estimatedOutput.toFixed(6)
                 ) : (
-                  '0.0'
-                )}
-              </div>
-
-              {/* Output Token Selector Button */}
-              <button
-                type="button"
-                onClick={() => setIsOutputModalOpen(true)}
-                className="flex items-center gap-2 pl-2.5 pr-3 py-2 rounded-xl bg-white dark:bg-[#202024] border border-[#E2E2E0] dark:border-[#26262B] hover:border-[#111111] dark:hover:border-[#FFFFFF] shadow-xs text-xs font-bold text-[#111111] dark:text-[#FFFFFF] transition-all shrink-0 cursor-pointer"
-              >
-                <div className="w-5 h-5 rounded-full bg-[#111111] text-white dark:bg-[#FFFFFF] dark:text-[#111111] flex items-center justify-center font-mono text-[9px] overflow-hidden shrink-0">
-                  {outputToken.icon ? (
-                    <img src={outputToken.icon} alt={outputToken.symbol} className="w-full h-full object-cover" />
-                  ) : outputToken.symbol === 'USDC' ? (
-                    <img src={usdcLogo} alt={outputToken.symbol} className="w-full h-full object-cover" />
-                  ) : outputToken.symbol === 'MUSD' || outputToken.symbol.toLowerCase().includes('mezo') ? (
-                    <img src={mezoLogo} alt={outputToken.symbol} className="w-full h-full object-cover" />
-                  ) : outputToken.symbol.toLowerCase().includes('btc') ? (
-                    <img src={btcLogo} alt={outputToken.symbol} className="w-full h-full object-cover" />
-                  ) : (
-                    outputToken.symbol.slice(0, 2)
-                  )}
-                </div>
-                <span>{outputToken.symbol}</span>
-                <ChevronDown className="w-3.5 h-3.5 text-[#777777] dark:text-[#A0A0A0]" />
-              </button>
-            </div>
-
-            <div className="flex items-center justify-between text-[11px] font-mono text-[#777777] dark:text-[#A0A0A0]">
-              <span>
-                {outputFiat
-                  ? `≈ ${outputFiat.formatted} ${preferredCurrency}`
-                  : `0.00 ${preferredCurrency}`}
-              </span>
-              <span className="text-[10px] text-[#999999] dark:text-[#666666]">
-                1 {outputToken.symbol} = {formatPrice(outputToken.usdPrice)}
-              </span>
-            </div>
-          </div>
-
-          {/* Details & Quote Accordion */}
-          {quote && numericInput > 0 && (
-            <div className="p-4 rounded-2xl bg-[#FAFAF9] dark:bg-[#161618] border border-[#E2E2E0] dark:border-[#26262B] space-y-2.5 text-xs font-mono animate-in fade-in duration-150">
-              <div className="flex items-center justify-between pb-1.5 border-b border-[#E2E2E0]/60 dark:border-[#26262B]/60">
-                <div className="flex items-center gap-1.5 text-[#555555] dark:text-[#A0A0A0]">
-                  <Activity className="w-3.5 h-3.5 text-emerald-500" />
-                  <span>Execution Rate (Live)</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="font-bold text-[#111111] dark:text-[#FFFFFF]">
-                    1 {inputToken.symbol} = {formatRate(quote.exchangeRate)} {outputToken.symbol}
-                  </span>
                   <button
                     type="button"
-                    onClick={() => setShowInverseRate(!showInverseRate)}
-                    className="text-[10px] text-[#777777] hover:text-[#111111] dark:hover:text-[#FFFFFF] underline"
+                    onClick={() => exec.execute(chain, wallet.address!, reviewing)}
+                    disabled={exec.busy}
+                    className="w-full py-3.5 rounded-2xl bg-[#111111] text-white dark:bg-[#FFFFFF] dark:text-[#111111] text-sm font-semibold disabled:opacity-50"
                   >
-                    ⇄
+                    Confirm in wallet
                   </button>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <span className="text-[#777777] dark:text-[#A0A0A0]">Network Fee</span>
-                <span className="text-[#111111] dark:text-[#FFFFFF]">{quote.networkFee}</span>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <span className="text-[#777777] dark:text-[#A0A0A0]">Price Impact</span>
-                <span className="text-emerald-600 dark:text-emerald-400 font-semibold">{quote.priceImpact}</span>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <span className="text-[#777777] dark:text-[#A0A0A0]">Minimum Received</span>
-                <span className="text-[#111111] dark:text-[#FFFFFF] font-semibold">
-                  {quote.minReceived.toFixed(6)} {outputToken.symbol}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between pt-1 border-t border-[#E2E2E0]/40 dark:border-[#26262B]/40 text-[10px] text-[#888888] dark:text-[#666666]">
-                <div className="flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                  <span>Oracle Feed: {rates[inputToken.symbol]?.source || 'Mezo Consolidated'}</span>
-                </div>
-                <span>Auto-refreshes every 15s</span>
-              </div>
-            </div>
-          )}
-
-          {/* Primary Action Button */}
-          <div className="pt-2">
-            {!wallet.isConnected ? (
-              <button
-                type="button"
-                onClick={onConnectWallet}
-                className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-[#111111] text-white dark:bg-[#FFFFFF] dark:text-[#111111] text-sm font-semibold tracking-wide shadow-sm hover:bg-[#262626] dark:hover:bg-[#EAEAEA] active:scale-[0.98] transition-all cursor-pointer"
-              >
-                <Wallet className="w-4 h-4" />
-                <span>Connect Wallet</span>
-              </button>
-            ) : isWrongNetwork ? (
-              <button
-                type="button"
-                onClick={onOpenNetworks}
-                className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-amber-600 text-white text-sm font-semibold tracking-wide hover:bg-amber-700 active:scale-[0.98] transition-all cursor-pointer"
-              >
-                <span>Switch to Mezo Network</span>
-              </button>
-            ) : !isPairValid ? (
-              <button
-                disabled
-                className="w-full py-4 rounded-2xl bg-[#F0F0EE] dark:bg-[#1A1A1D] text-[#777777] dark:text-[#A0A0A0] text-sm font-semibold tracking-wide cursor-not-allowed"
-              >
-                Select Different Tokens
-              </button>
-            ) : !isAmountValid ? (
-              <button
-                disabled
-                className="w-full py-4 rounded-2xl bg-[#F0F0EE] dark:bg-[#1A1A1D] text-[#777777] dark:text-[#A0A0A0] text-sm font-semibold tracking-wide cursor-not-allowed"
-              >
-                Enter an Amount
-              </button>
-            ) : isInsufficientBalance ? (
-              <button
-                disabled
-                className="w-full py-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-sm font-semibold tracking-wide cursor-not-allowed"
-              >
-                Insufficient {inputToken.symbol} Balance
-              </button>
+                )}
+              </>
             ) : (
-              <button
-                type="button"
-                onClick={() => setIsReviewModalOpen(true)}
-                className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-[#111111] text-white dark:bg-[#FFFFFF] dark:text-[#111111] text-sm font-semibold tracking-wide shadow-sm hover:bg-[#262626] dark:hover:bg-[#EAEAEA] active:scale-[0.98] transition-all cursor-pointer"
-              >
-                <span>Review Swap at Live Rate</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
+              <>
+                <TxStatusPanel
+                  phase={exec.phase}
+                  chain={chain}
+                  details={[
+                    { label: 'Paid', value: `${formatTokenDisplay(reviewing.amountIn, reviewing.tokenIn.decimals, { maxFractionDigits: 8 })} ${reviewing.tokenIn.symbol}` },
+                    ...(exec.phase.phase === 'confirmed' && exec.received !== null
+                      ? [{ label: 'Received', value: `${formatTokenDisplay(exec.received, reviewing.tokenOut.decimals, { maxFractionDigits: 8 })} ${reviewing.tokenOut.symbol} (from receipt)` }]
+                      : [{ label: 'Minimum', value: `${formatTokenDisplay(reviewing.minAmountOut, reviewing.tokenOut.decimals, { maxFractionDigits: 8 })} ${reviewing.tokenOut.symbol}` }]),
+                  ]}
+                />
+                {isTerminal(exec.phase) && (
+                  <button type="button" onClick={() => { setReviewing(null); exec.reset(); }} className="w-full py-3 rounded-2xl border border-[#E2E2E0] dark:border-[#26262B] text-xs font-semibold">
+                    Done
+                  </button>
+                )}
+              </>
             )}
           </div>
         </div>
-
-        {/* Right Side: Protocol Intelligence & Settlement Safeguards */}
-        <div className="lg:col-span-5 xl:col-span-5 flex flex-col gap-3.5">
-          {/* Direct Settlement & Non-Custodial Safety Card */}
-          <div className="p-4 sm:p-4.5 rounded-2xl bg-white dark:bg-[#141416] border border-[#E2E2E0] dark:border-[#26262B] space-y-1.5 shadow-xs text-xs font-mono text-[#777777] dark:text-[#A0A0A0]">
-            <span className="font-semibold text-xs text-[#111111] dark:text-[#FFFFFF] block">
-              Direct Settlement
-            </span>
-            <p className="text-[11px] leading-relaxed">
-              Swaps on Mezo settle directly into your connected non-custodial address with transparent oracle execution.
-            </p>
-          </div>
-
-          {/* Slippage & Auto-routing Card */}
-          <div className="p-4 sm:p-4.5 rounded-2xl bg-white dark:bg-[#141416] border border-[#E2E2E0] dark:border-[#26262B] space-y-1.5 shadow-xs text-xs font-mono text-[#777777] dark:text-[#A0A0A0]">
-            <span className="font-semibold text-xs text-[#111111] dark:text-[#FFFFFF] block">
-              Slippage & Routing Protection
-            </span>
-            <p className="text-[11px] leading-relaxed">
-              Live quote safeguards you from unexpected slippage by enforcing minimum received thresholds on execution.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Input Token Selector Modal with Live Rates */}
-      <TokenSelectModal
-        isOpen={isInputModalOpen}
-        onClose={() => setIsInputModalOpen(false)}
-        tokens={tokens}
-        selectedToken={inputToken}
-        onSelectToken={(token) => setInputToken(token)}
-        disabledTokenSymbol={outputToken.symbol}
-        title="Pay with"
-      />
-
-      {/* Output Token Selector Modal with Live Rates */}
-      <TokenSelectModal
-        isOpen={isOutputModalOpen}
-        onClose={() => setIsOutputModalOpen(false)}
-        tokens={tokens}
-        selectedToken={outputToken}
-        onSelectToken={(token) => setOutputToken(token)}
-        disabledTokenSymbol={inputToken.symbol}
-        title="Receive"
-      />
-
-      {/* Quote Review Modal */}
-      {quote && (
-        <SwapReviewModal
-          isOpen={isReviewModalOpen}
-          onClose={() => setIsReviewModalOpen(false)}
-          quote={quote}
-          onConfirmSwap={(q) => {
-            if (onSwapCompleted) {
-              onSwapCompleted(q);
-            }
-          }}
-          onRefreshQuote={() => {
-            refreshRates();
-          }}
-        />
       )}
     </div>
   );
 };
+
+function Row({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex justify-between gap-4">
+      <span className="text-[#777777] dark:text-[#A0A0A0] shrink-0">{label}</span>
+      <span className="text-right text-[#111111] dark:text-[#FFFFFF]">{children}</span>
+    </div>
+  );
+}

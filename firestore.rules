@@ -1,63 +1,41 @@
 rules_version = '2';
+
+// Cambio Firestore security rules.
+//
+// Trust model:
+//  - Every write to identity data is made by the Cambio API with the Admin SDK, after it has verified
+//    an EIP-4361 wallet signature. The Admin SDK bypasses these rules; browser clients never write.
+//  - The only data a browser may read directly is a single verified username record, looked up by
+//    exact id. Listing/enumeration is denied.
+//  - Transaction history is derived from the blockchain, not stored here, so there is no per-wallet
+//    history collection to protect. Legacy client-written collections are closed entirely.
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Default catch-all: deny everything unless explicitly permitted
+
+    // Default: deny everything not explicitly allowed below.
     match /{document=**} {
       allow read, write: if false;
     }
 
-    function isValidUsernameId(name) {
-      return name is string && name.size() >= 3 && name.size() <= 20 && name.matches('^[a-z0-9_]{3,20}$');
+    // Verified registry: username -> wallet. Public single-document reads for recipient resolution.
+    match /verified_usernames/{username} {
+      allow get: if username.matches('^[a-z0-9_]{3,20}$');
+      allow list, create, update, delete: if false;
     }
 
-    function isValidAddress(addr) {
-      return addr is string && addr.size() == 42 && addr.matches('^0x[a-f0-9]{40}$');
+    // Verified reverse lookup: lowercase wallet address -> username.
+    match /verified_wallets/{address} {
+      allow get: if address.matches('^0x[a-f0-9]{40}$');
+      allow list, create, update, delete: if false;
     }
 
-    // Global Unique Username Registry
-    // Document ID is strictly the canonical lowercase username (e.g. "jomi")
-    match /usernames/{username} {
-      allow get, list: if true;
-
-      allow create: if isValidUsernameId(username)
-        && request.resource.data.username == username
-        && isValidAddress(request.resource.data.ownerAddress)
-        && request.resource.data.keys().hasAll(['username', 'ownerAddress', 'createdAt'])
-        && request.resource.data.keys().hasOnly(['username', 'ownerAddress', 'createdAt', 'signature'])
-        && (request.resource.data.signature == null || request.resource.data.signature is string);
-
-      allow update: if isValidUsernameId(username)
-        && request.resource.data.username == username
-        && isValidAddress(request.resource.data.ownerAddress)
-        && request.resource.data.keys().hasAll(['username', 'ownerAddress', 'createdAt'])
-        && request.resource.data.keys().hasOnly(['username', 'ownerAddress', 'createdAt', 'signature'])
-        && (request.resource.data.signature == null || request.resource.data.signature is string);
-
-      allow delete: if isValidUsernameId(username);
+    // Single-use sign-in challenges. Server only: never readable, since a challenge's nonce must stay unguessable.
+    match /identity_challenges/{nonce} {
+      allow read, write: if false;
     }
 
-    // Reverse Lookup Registry
-    // Document ID is strictly the lowercase EVM wallet address (e.g. "0x71c...fa")
-    match /wallets/{walletAddress} {
-      allow get, list: if true;
-
-      allow create, update: if isValidAddress(walletAddress)
-        && request.resource.data.walletAddress == walletAddress
-        && isValidUsernameId(request.resource.data.username)
-        && request.resource.data.keys().hasAll(['walletAddress', 'username', 'updatedAt'])
-        && request.resource.data.keys().hasOnly(['walletAddress', 'username', 'updatedAt']);
-
-      allow delete: if isValidAddress(walletAddress);
-    }
-
-    // Real Wallet Transactions History
-    match /wallet_transactions/{walletAddress}/history/{txId} {
-      allow read, write: if isValidAddress(walletAddress);
-    }
-
-    // User Preferences (Preferred Currency, Display Options)
-    match /user_preferences/{walletAddress} {
-      allow read, write: if isValidAddress(walletAddress);
-    }
+    // Legacy collections from the prototype. Their ownership was never verified, so they are
+    // neither readable nor writable: `usernames`, `wallets`, `wallet_transactions`, `user_preferences`.
+    // (Covered by the default deny above; listed here for reviewers.)
   }
 }

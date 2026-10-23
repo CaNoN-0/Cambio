@@ -3,34 +3,19 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useRef } from 'react';
-import { 
-  useAppKit, 
-  useAppKitAccount, 
-  useAppKitNetwork, 
-  useDisconnect,
-  useWalletInfo
-} from '@reown/appkit/react';
-import { 
-  NavItemKey, 
-  WalletState, 
-  Transaction, 
-  NotificationItem,
-  WalletConnectionStatus,
-  SwapQuote
-} from './types';
-import { 
-  SAMPLE_TRANSACTIONS, 
-  INITIAL_NOTIFICATIONS, 
-  DEMO_CONNECTED_BALANCE 
-} from './data/mockData';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useAppKit, useAppKitAccount, useDisconnect, useWalletInfo } from '@reown/appkit/react';
+import { useConnection } from 'wagmi';
+import { AlertTriangle } from 'lucide-react';
+import type { NavItemKey, WalletState, NotificationItem, WalletConnectionStatus } from './types';
+import { INITIAL_NOTIFICATIONS, DEMO_MUSD_BALANCE, DEMO_BTC_BALANCE, createDemoActivity } from './data/mockData';
 import { shortenAddress } from './utils/format';
 import { Sidebar } from './components/Sidebar';
 import { TopBar } from './components/TopBar';
 import { BalanceCard } from './components/BalanceCard';
 import { FirstTimeNotice } from './components/FirstTimeNotice';
 import { RecentActivity } from './components/RecentActivity';
-import { SendModal } from './components/SendModal';
+import { SendModal, type DemoSend } from './components/SendModal';
 import { ReceiveModal } from './components/ReceiveModal';
 import { ActivityView } from './components/ActivityView';
 import { SettingsView } from './components/SettingsView';
@@ -38,376 +23,202 @@ import { RequestView } from './components/RequestView';
 import { PaymentRequestPage } from './components/PaymentRequestPage';
 import { NotificationsView } from './components/NotificationsView';
 import { SwapView } from './components/SwapView';
-import { PaymentRequest } from './types';
-import { parsePaymentRequestFromUrl } from './utils/paymentRequest';
-import { AlertTriangle } from 'lucide-react';
-import { HalftonePattern } from './components/HalftonePattern';
 import { LandingPage } from './components/LandingPage';
 import { UsernameModal } from './components/UsernameModal';
 import { ProfileModal } from './components/ProfileModal';
-import { getUsernameForWallet } from './services/usernameRegistry';
-import { 
-  fetchRealOnChainBalance, 
-  saveRealTransaction, 
-  loadRealTransactions 
-} from './services/realDataService';
+import { DemoBanner } from './components/DemoBanner';
+import { getChainConfig } from './config/chains';
+import { useWalletBalances } from './hooks/useWalletBalances';
+import { useActivity } from './hooks/useActivity';
+import { demoBalance, type WalletBalances } from './lib/balances';
+import type { ActivityItem } from './lib/activity';
+import type { TxPhase } from './lib/transactions';
+import { formatTokenDisplay } from './lib/amounts';
+import { parsePaymentLink, type ParsedPaymentLink } from './lib/paymentRequest';
+import { getIdentityHealth, lookupAddress, type IdentityHealth } from './services/identityClient';
+
+const VIEWS: NavItemKey[] = ['overview', 'activity', 'request', 'swap', 'notifications', 'settings'];
+
+function routeFromLocation(): { route: 'landing' | 'app' | 'pay'; view: NavItemKey; link: ParsedPaymentLink | null } {
+  const link = parsePaymentLink(window.location.href);
+  if (link) return { route: 'pay', view: 'overview', link };
+  const path = window.location.pathname.toLowerCase();
+  const hash = window.location.hash.toLowerCase();
+  const view = VIEWS.find((v) => path.includes(`/${v}`) || hash.includes(v)) ?? 'overview';
+  if (path.startsWith('/app') || hash.includes('/app') || VIEWS.some((v) => hash.includes(v))) return { route: 'app', view, link: null };
+  return { route: 'landing', view, link: null };
+}
+
+let notifSeq = 0;
+const notif = (title: string, message: string, type: NotificationItem['type']): NotificationItem => ({
+  id: `notif-${Date.now()}-${notifSeq++}`,
+  title,
+  message,
+  timestamp: new Date().toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }),
+  read: false,
+  type,
+});
 
 export default function App() {
-  // Reown AppKit / WalletConnect Real Hooks
   const { open } = useAppKit();
-  const { address, isConnected, status } = useAppKitAccount();
-  const { chainId, caipNetwork } = useAppKitNetwork();
+  const { status: appKitStatus } = useAppKitAccount();
+  const connection = useConnection();
   const { disconnect } = useDisconnect();
   const { walletInfo } = useWalletInfo();
 
-  // Payment Request state (when viewing shareable payment link or scanning QR)
-  const [activePaymentRequest, setActivePaymentRequest] = useState<PaymentRequest | null>(() => {
-    return parsePaymentRequestFromUrl();
-  });
+  const address = connection.address ?? null;
+  const chainId = connection.chainId ?? null;
+  const isConnected = connection.isConnected && !!address;
+  const chain = getChainConfig(chainId);
 
-  // Prefill state for Send Modal (when paying a payment request)
-  const [sendPrefill, setSendPrefill] = useState<{
-    recipient: string;
-    amount: string;
-    memo: string;
-  } | null>(null);
-
-  // Root Routing State: 'landing' | 'app' | 'pay'
-  const [currentRoute, setCurrentRoute] = useState<'landing' | 'app' | 'pay'>(() => {
-    if (typeof window === 'undefined') return 'landing';
-    const parsedReq = parsePaymentRequestFromUrl();
-    if (parsedReq) {
-      return 'pay';
-    }
-    const path = window.location.pathname.toLowerCase();
-    const hash = window.location.hash.toLowerCase();
-    if (path.includes('pay') || hash.includes('pay') || path.includes('req=') || hash.includes('req=')) {
-      return 'pay';
-    }
-    if (path.startsWith('/app') || hash.includes('/app') || hash.includes('overview') || hash.includes('activity') || hash.includes('request') || hash.includes('settings')) {
-      return 'app';
-    }
-    return 'landing';
-  });
-
-  // Navigation State inside App
-  const [activeView, setActiveView] = useState<NavItemKey>(() => {
-    if (typeof window === 'undefined') return 'overview';
-    const path = window.location.pathname.toLowerCase();
-    const hash = window.location.hash.toLowerCase();
-    if (path.includes('activity') || hash.includes('activity')) return 'activity';
-    if (path.includes('request') || hash.includes('request')) return 'request';
-    if (path.includes('swap') || hash.includes('swap')) return 'swap';
-    if (path.includes('notifications') || hash.includes('notifications')) return 'notifications';
-    if (path.includes('settings') || hash.includes('settings')) return 'settings';
-    return 'overview';
-  });
+  const initial = useMemo(routeFromLocation, []);
+  const [currentRoute, setCurrentRoute] = useState(initial.route);
+  const [activeView, setActiveView] = useState<NavItemKey>(initial.view);
+  const [paymentLink, setPaymentLink] = useState<ParsedPaymentLink | null>(initial.link);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-  // Balance Masking
   const [isBalanceMasked, setIsBalanceMasked] = useState(false);
-
-  // Data Mode: 'real' | 'demo' (Defaults to 'real' per prompt requirement: "the whole app should be real data")
   const [dataMode, setDataMode] = useState<'real' | 'demo'>('real');
-
-  // Real On-Chain MUSD / Native Balance
-  const [realBalance, setRealBalance] = useState<number>(0);
-
-  // Demo MUSD Balance for connected users
-  const [demoBalance, setDemoBalance] = useState<number>(DEMO_CONNECTED_BALANCE);
-
-  // Real Transactions from Firestore vs Demo Transactions
-  const [realTransactions, setRealTransactions] = useState<Transaction[]>([]);
-  const [demoTransactions, setDemoTransactions] = useState<Transaction[]>([]);
-
-  // Derived current transaction list based on active mode
-  const transactions = dataMode === 'real' ? realTransactions : demoTransactions;
-
-  // Profile Modal state (with blurred background)
+  const [notifications, setNotifications] = useState<NotificationItem[]>(INITIAL_NOTIFICATIONS);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [activeModal, setActiveModal] = useState<'none' | 'send' | 'receive'>('none');
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
-  // Notifications State
-  const [notifications, setNotifications] = useState<NotificationItem[]>(INITIAL_NOTIFICATIONS);
-
-  // Connection error state
-  const [connectionError, setConnectionError] = useState<string | null>(null);
-
-  // Active slide-over dialogs
-  const [activeModal, setActiveModal] = useState<'none' | 'send' | 'receive'>('none');
-
-  // Username System state
+  // Identity
+  const [identityHealth, setIdentityHealth] = useState<IdentityHealth | null>(null);
   const [connectedUsername, setConnectedUsername] = useState<string | null>(null);
   const [isUsernameModalOpen, setIsUsernameModalOpen] = useState(false);
   const [usernameModalMode, setUsernameModalMode] = useState<'create' | 'change'>('create');
 
-  // Fetch real on-chain balance whenever connected address or chain changes
-  useEffect(() => {
-    let isCancelled = false;
-    if (isConnected && address) {
-      fetchRealOnChainBalance(address, chainId)
-        .then((bal) => {
-          if (!isCancelled) {
-            setRealBalance(bal);
-          }
-        })
-        .catch((err) => {
-          console.warn('Real balance query error:', err);
-        });
-    } else {
-      setRealBalance(0);
-    }
-    return () => {
-      isCancelled = true;
-    };
-  }, [isConnected, address, chainId]);
+  // Real data: read from the chain.
+  const real = useWalletBalances(address, chainId);
+  const activity = useActivity(address, chain, dataMode === 'real' && isConnected);
 
-  // Load real transactions for connected wallet from Firestore
-  useEffect(() => {
-    let isCancelled = false;
-    if (isConnected && address) {
-      loadRealTransactions(address)
-        .then((txs) => {
-          if (!isCancelled) {
-            setRealTransactions(txs);
-          }
-        })
-        .catch((err) => {
-          console.warn('Real transactions query error:', err);
-        });
-    } else {
-      setRealTransactions([]);
-    }
-    return () => {
-      isCancelled = true;
-    };
-  }, [isConnected, address]);
+  // Demo data: simulated, kept entirely separate.
+  const [demoMusd, setDemoMusd] = useState<bigint>(DEMO_MUSD_BALANCE);
+  const [demoActivity, setDemoActivity] = useState<ActivityItem[]>(createDemoActivity);
 
-  // Query Firestore username whenever connected address changes
+  const push = useCallback((n: NotificationItem) => setNotifications((prev) => [n, ...prev].slice(0, 50)), []);
+
+  const balances: WalletBalances =
+    dataMode === 'demo' && isConnected && chain
+      ? { btc: demoBalance('BTC', DEMO_BTC_BALANCE), musd: demoBalance('MUSD', demoMusd) }
+      : real.balances;
+
+  const wallet: WalletState = {
+    isConnected,
+    status: (isConnected ? 'connected' : ((appKitStatus as WalletConnectionStatus) || 'disconnected')) as WalletConnectionStatus,
+    address,
+    walletName: walletInfo?.name && !/https?:|localhost|\.app/.test(walletInfo.name) ? walletInfo.name : isConnected ? 'Wallet' : null,
+    chainId,
+    networkName: chain?.name ?? (chainId ? `Chain ${chainId}` : null),
+    chain,
+    isSupportedNetwork: !!chain,
+    balances,
+    username: connectedUsername,
+    dataMode,
+  };
+
+  // Identity service health, once.
   useEffect(() => {
-    let isCancelled = false;
-    if (isConnected && address) {
-      getUsernameForWallet(address)
-        .then((record) => {
-          if (isCancelled) return;
-          if (record && record.username) {
-            setConnectedUsername(record.username);
-          } else {
-            setConnectedUsername(null);
-            // Check if wallet prompt was dismissed in this session
-            const dismissedKey = `cambio_username_prompt_dismissed_${address.toLowerCase()}`;
-            if (!sessionStorage.getItem(dismissedKey)) {
-              setUsernameModalMode('create');
-              setIsUsernameModalOpen(true);
-            }
-          }
-        })
-        .catch((err) => {
-          console.warn('Error fetching username for wallet:', err);
-        });
-    } else {
-      setConnectedUsername(null);
+    getIdentityHealth().then(setIdentityHealth);
+  }, []);
+
+  // Verified username for the connected wallet (reverse lookup through the API only).
+  useEffect(() => {
+    let cancelled = false;
+    setConnectedUsername(null);
+    if (!address) {
       setIsUsernameModalOpen(false);
+      return;
     }
-
+    lookupAddress(address)
+      .then((rec) => {
+        if (cancelled) return;
+        setConnectedUsername(rec?.username ?? null);
+        const dismissedKey = `cambio_username_prompt_dismissed_${address.toLowerCase()}`;
+        let dismissed = false;
+        try {
+          dismissed = !!sessionStorage.getItem(dismissedKey);
+        } catch {
+          dismissed = true;
+        }
+        if (!rec && !dismissed && currentRoute === 'app') {
+          setUsernameModalMode('create');
+          setIsUsernameModalOpen(true);
+        }
+      })
+      .catch(() => {
+        // Identity service unavailable: no username is shown rather than a stale or guessed one.
+        if (!cancelled) setConnectedUsername(null);
+      });
     return () => {
-      isCancelled = true;
+      cancelled = true;
     };
-  }, [isConnected, address]);
-
-  // Listen for username updates across components
-  useEffect(() => {
-    const handleUsernameUpdated = (e: any) => {
-      if (e.detail && address && e.detail.walletAddress?.toLowerCase() === address.toLowerCase()) {
-        setConnectedUsername(e.detail.username);
-      }
-    };
-    window.addEventListener('cambio_username_updated', handleUsernameUpdated);
-    return () => {
-      window.removeEventListener('cambio_username_updated', handleUsernameUpdated);
-    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [address]);
 
-  const handleUsernameSuccess = (newUsername: string) => {
-    setConnectedUsername(newUsername);
-    if (address) {
-      sessionStorage.setItem(`cambio_username_prompt_dismissed_${address.toLowerCase()}`, 'true');
-    }
-    setNotifications((prev) => [
-      {
-        id: `notif-${Date.now()}`,
-        title: 'Username Created',
-        message: `Your Cambio username @${newUsername} has been linked to ${shortenAddress(address)}.`,
-        timestamp: 'Just now',
-        read: false,
-        type: 'wallet',
-      },
-      ...prev,
-    ]);
-  };
-
-  const handleOpenUsernameModal = (mode?: 'create' | 'change') => {
-    setUsernameModalMode(mode || (connectedUsername ? 'change' : 'create'));
-    setIsUsernameModalOpen(true);
-  };
-
-  const handleCloseUsernameModal = () => {
-    if (address) {
-      sessionStorage.setItem(`cambio_username_prompt_dismissed_${address.toLowerCase()}`, 'true');
-    }
-    setIsUsernameModalOpen(false);
-  };
-
-  // Listen for provider rejection or account errors (e.g. error 4001: wallet must have at least one account)
   useEffect(() => {
-    const handleRejection = (event: PromiseRejectionEvent) => {
-      const reason = event.reason;
-      if (
-        reason &&
-        (reason.code === 4001 ||
-          (typeof reason.message === 'string' &&
-            (reason.message.includes('at least one account') ||
-              reason.message.includes('must has at least one account') ||
-              reason.message.includes('rejected') ||
-              reason.message.includes('denied') ||
-              reason.message.includes('Analytics'))))
-      ) {
+    const onUpdated = (e: Event) => {
+      const d = (e as CustomEvent).detail;
+      if (d && address && d.walletAddress?.toLowerCase() === address.toLowerCase()) setConnectedUsername(d.username);
+    };
+    window.addEventListener('cambio_username_updated', onUpdated);
+    return () => window.removeEventListener('cambio_username_updated', onUpdated);
+  }, [address]);
+
+  // Connection notifications.
+  const prevConnected = useRef(false);
+  useEffect(() => {
+    if (isConnected && !prevConnected.current) {
+      push(notif('Wallet connected', `${shortenAddress(address)} connected${chain ? ` on ${chain.name}` : ''}.`, 'wallet'));
+    } else if (!isConnected && prevConnected.current) {
+      push(notif('Wallet disconnected', 'Your wallet session ended.', 'wallet'));
+      setActiveModal('none');
+    }
+    prevConnected.current = isConnected;
+  }, [isConnected, address, chain, push]);
+
+  // Wallet-provider rejections that escape as unhandled promises (e.g. "no accounts").
+  useEffect(() => {
+    const handle = (event: PromiseRejectionEvent) => {
+      const r = event.reason;
+      const msg = typeof r?.message === 'string' ? r.message : '';
+      if (r?.code === 4001 || /user rejected|user denied/i.test(msg)) {
         event.preventDefault();
-        if (
-          typeof reason.message === 'string' &&
-          (reason.message.includes('at least one account') || reason.message.includes('must has at least one account'))
-        ) {
-          setConnectionError(
-            'Wallet connection paused: Your wallet extension reported that no accounts are available. Please unlock your wallet, ensure an account is created, or connect using a mobile wallet.'
-          );
-        } else if (
-          typeof reason.message === 'string' &&
-          (reason.message.includes('rejected') || reason.message.includes('denied'))
-        ) {
-          setConnectionError('Wallet connection was dismissed or canceled in your wallet.');
-        }
-      }
-    };
-
-    window.addEventListener('unhandledrejection', handleRejection);
-    return () => {
-      window.removeEventListener('unhandledrejection', handleRejection);
-    };
-  }, []);
-
-  // Listen for browser URL / hash changes (handling deep links, QR scans, back/forward)
-  useEffect(() => {
-    const handleUrlChange = () => {
-      const parsedReq = parsePaymentRequestFromUrl();
-      if (parsedReq) {
-        setActivePaymentRequest(parsedReq);
-        setCurrentRoute('pay');
         return;
       }
-      const hash = window.location.hash.toLowerCase();
-      const path = window.location.pathname.toLowerCase();
-      if (path.includes('pay') || hash.includes('pay') || hash.includes('req=') || hash.includes('to=')) {
-        setCurrentRoute('pay');
-      } else if (
-        path.startsWith('/app') ||
-        hash.includes('app') ||
-        hash.includes('overview') ||
-        hash.includes('activity') ||
-        hash.includes('request') ||
-        hash.includes('settings') ||
-        hash.includes('swap')
-      ) {
-        setCurrentRoute('app');
-      } else if (hash === '' || hash === '#' || hash === '#/' || path === '/') {
-        setCurrentRoute('landing');
+      if (/at least one account|must has at least one account/i.test(msg)) {
+        event.preventDefault();
+        setConnectionError('Your wallet reported no available accounts. Unlock it or create an account, then connect again.');
       }
     };
+    window.addEventListener('unhandledrejection', handle);
+    return () => window.removeEventListener('unhandledrejection', handle);
+  }, []);
 
-    window.addEventListener('hashchange', handleUrlChange);
-    window.addEventListener('popstate', handleUrlChange);
+  // Back/forward and in-page link navigation.
+  useEffect(() => {
+    const onNav = () => {
+      const r = routeFromLocation();
+      setCurrentRoute(r.route);
+      setPaymentLink(r.link);
+      if (r.route === 'app') setActiveView(r.view);
+    };
+    window.addEventListener('popstate', onNav);
+    window.addEventListener('hashchange', onNav);
     return () => {
-      window.removeEventListener('hashchange', handleUrlChange);
-      window.removeEventListener('popstate', handleUrlChange);
+      window.removeEventListener('popstate', onNav);
+      window.removeEventListener('hashchange', onNav);
     };
   }, []);
 
-  // Track previous connection to send notifications cleanly
-  const prevConnectedRef = useRef(false);
-
-  // Evaluate if connected to Mezo
-  const isMezo = 
-    chainId === 31612 || 
-    chainId === 31611 || 
-    (caipNetwork?.name ? caipNetwork.name.toLowerCase().includes('mezo') : false);
-
-  // Construct wallet state object
-  const wallet: WalletState = {
-    isConnected: !!isConnected,
-    status: (status as WalletConnectionStatus) || 'disconnected',
-    address: address || null,
-    walletName: (() => {
-      const name = walletInfo?.name;
-      if (!name || name.includes('http') || name.includes('run.app') || name.includes('localhost') || name.includes('.app')) {
-        return isConnected ? 'Cambio' : null;
-      }
-      return name;
-    })(),
-    chainId: chainId ?? null,
-    networkName: caipNetwork?.name || (isMezo ? 'Mezo' : chainId ? `Chain ${chainId}` : null),
-    isMezoNetwork: isMezo,
-    balanceMusd: isConnected ? (dataMode === 'real' ? realBalance : demoBalance) : 0,
-    isDemoBalance: dataMode === 'demo',
-    username: connectedUsername,
-    dataMode: dataMode,
-  };
-
-  // Notification trigger upon real connection/disconnection
-  useEffect(() => {
-    if (isConnected && address && !prevConnectedRef.current) {
-      prevConnectedRef.current = true;
-      const displayWalletName = walletInfo?.name && !walletInfo.name.includes('run.app') && !walletInfo.name.includes('http')
-        ? walletInfo.name
-        : 'Cambio';
-      setNotifications((prev) => [
-        {
-          id: `notif-${Date.now()}`,
-          title: 'Wallet Connected',
-          message: `Connected ${displayWalletName} (${shortenAddress(address)}). Session active.`,
-          timestamp: 'Just now',
-          read: false,
-          type: 'wallet',
-        },
-        ...prev,
-      ]);
-    } else if (!isConnected && prevConnectedRef.current) {
-      prevConnectedRef.current = false;
-      setNotifications((prev) => [
-        {
-          id: `notif-${Date.now()}`,
-          title: 'Wallet Disconnected',
-          message: 'Wallet session disconnected successfully.',
-          timestamp: 'Just now',
-          read: false,
-          type: 'wallet',
-        },
-        ...prev,
-      ]);
-    }
-  }, [isConnected, address, walletInfo?.name]);
-
-  // Open real WalletConnect modal
   const handleOpenWalletModal = () => {
     setConnectionError(null);
-    open().catch((err: any) => {
-      console.warn('Wallet modal open event:', err?.message || err);
-    });
+    open().catch(() => undefined);
   };
-
-  // Open real network selection modal
   const handleOpenNetworksModal = () => {
-    open({ view: 'Networks' });
+    open({ view: 'Networks' }).catch(() => undefined);
   };
-
-  // Disconnect handler
   const handleDisconnect = async () => {
     try {
       await disconnect();
@@ -416,286 +227,133 @@ export default function App() {
     }
   };
 
-  // Sync route and views on back/forward browser navigation
-  useEffect(() => {
-    const handleUrlChange = () => {
-      const parsedReq = parsePaymentRequestFromUrl();
-      if (parsedReq) {
-        setActivePaymentRequest(parsedReq);
-        setCurrentRoute('pay');
-        return;
-      }
-
-      const path = window.location.pathname.toLowerCase();
-      const hash = window.location.hash.toLowerCase();
-      if (path.includes('pay') || hash.includes('pay')) {
-        setCurrentRoute('pay');
-      } else if (path.startsWith('/app') || hash.includes('/app') || hash.includes('overview') || hash.includes('activity') || hash.includes('request') || hash.includes('swap') || hash.includes('settings') || hash.includes('notifications')) {
-        setCurrentRoute('app');
-        if (path.includes('activity') || hash.includes('activity')) {
-          setActiveView('activity');
-        } else if (path.includes('request') || hash.includes('request')) {
-          setActiveView('request');
-        } else if (path.includes('swap') || hash.includes('swap')) {
-          setActiveView('swap');
-        } else if (path.includes('notifications') || hash.includes('notifications')) {
-          setActiveView('notifications');
-        } else if (path.includes('settings') || hash.includes('settings')) {
-          setActiveView('settings');
-        } else {
-          setActiveView('overview');
-        }
-      } else {
-        setCurrentRoute('landing');
-      }
-    };
-
-    window.addEventListener('popstate', handleUrlChange);
-    window.addEventListener('hashchange', handleUrlChange);
-    return () => {
-      window.removeEventListener('popstate', handleUrlChange);
-      window.removeEventListener('hashchange', handleUrlChange);
-    };
-  }, []);
-
-  // Toggle between Real Data mode and Demo Simulation mode
-  const handleToggleDataMode = () => {
-    if (dataMode === 'real') {
-      setDataMode('demo');
-      if (demoTransactions.length === 0) {
-        setDemoTransactions(SAMPLE_TRANSACTIONS);
-      }
-      setNotifications((prev) => [
-        {
-          id: `notif-${Date.now()}`,
-          title: 'Switched to Demo Mode',
-          message: 'Simulation mode active with $12,450.00 test MUSD and demo history.',
-          timestamp: 'Just now',
-          read: false,
-          type: 'system',
-        },
-        ...prev,
-      ]);
-    } else {
-      setDataMode('real');
-      setNotifications((prev) => [
-        {
-          id: `notif-${Date.now()}`,
-          title: 'Switched to Real Data',
-          message: 'Displaying live on-chain balances and real transactions.',
-          timestamp: 'Just now',
-          read: false,
-          type: 'system',
-        },
-        ...prev,
-      ]);
-    }
-  };
-
-  // Swap Execution Handler (Real vs Demo Balance & Activity Updates)
-  const handleSwapCompleted = (quote: SwapQuote) => {
-    const isReal = dataMode === 'real';
-
-    if (isReal) {
-      if (quote.inputToken.symbol === 'MUSD') {
-        setRealBalance((prev) => Math.max(0, prev - quote.inputAmount));
-      } else if (quote.outputToken.symbol === 'MUSD') {
-        setRealBalance((prev) => prev + quote.estimatedOutput);
-      }
-
-      const newTx: Transaction = {
-        id: `tx-swap-${Date.now()}`,
-        type: 'swap',
-        amount: quote.inputAmount,
-        currency: `${quote.inputToken.symbol} ➔ ${quote.outputToken.symbol}`,
-        counterparty: 'Mezo Swap Pool',
-        counterpartyAddress: '0x3161…Swap',
-        timestamp: 'Just now',
-        status: 'completed',
-        note: `Swapped ${quote.inputAmount} ${quote.inputToken.symbol} for ~${quote.estimatedOutput.toFixed(4)} ${quote.outputToken.symbol}`,
-        txHash: `0x${Math.random().toString(16).substring(2, 10)}…${Math.random().toString(16).substring(2, 6)}`,
-        isDemo: false,
-      };
-
-      setRealTransactions((prev) => [newTx, ...prev]);
-      if (address) {
-        saveRealTransaction(address, newTx);
-      }
-    } else {
-      if (quote.inputToken.symbol === 'MUSD') {
-        setDemoBalance((prev) => Math.max(0, prev - quote.inputAmount));
-      } else if (quote.outputToken.symbol === 'MUSD') {
-        setDemoBalance((prev) => prev + quote.estimatedOutput);
-      }
-
-      const newTx: Transaction = {
-        id: `tx-swap-${Date.now()}`,
-        type: 'swap',
-        amount: quote.inputAmount,
-        currency: `${quote.inputToken.symbol} ➔ ${quote.outputToken.symbol}`,
-        counterparty: 'Mezo Swap Pool',
-        counterpartyAddress: '0x3161…Swap',
-        timestamp: 'Just now',
-        status: 'completed',
-        note: `Swapped ${quote.inputAmount} ${quote.inputToken.symbol} for ~${quote.estimatedOutput.toFixed(4)} ${quote.outputToken.symbol} (Demo)`,
-        txHash: `0x${Math.random().toString(16).substring(2, 10)}…${Math.random().toString(16).substring(2, 6)}`,
-        isDemo: true,
-      };
-
-      setDemoTransactions((prev) => [newTx, ...prev]);
-    }
-
-    setNotifications((prev) => [
-      {
-        id: `notif-${Date.now()}`,
-        title: isReal ? 'Swap Executed' : 'Swap Completed (Demo)',
-        message: `Exchanged ${quote.inputAmount} ${quote.inputToken.symbol} for ~${quote.estimatedOutput.toFixed(4)} ${quote.outputToken.symbol}.`,
-        timestamp: 'Just now',
-        read: false,
-        type: 'payment',
-      },
-      ...prev,
-    ]);
-  };
-
-  // Handler when user clicks "Pay $X MUSD" on PaymentRequestPage
-  const handlePayPaymentRequest = (req: PaymentRequest) => {
-    setSendPrefill({
-      recipient: req.recipientAddress,
-      amount: req.amount.toString(),
-      memo: req.note || `Payment for request ${req.id.slice(-6)}`,
-    });
+  const goApp = (view: NavItemKey = activeView) => {
     setCurrentRoute('app');
-    setActiveModal('send');
-  };
-
-  // Enter dashboard from landing page
-  const handleExplore = () => {
-    setCurrentRoute('app');
+    setActiveView(view);
+    setPaymentLink(null);
     try {
-      window.history.pushState(null, '', '/app');
-    } catch (e) {
+      window.history.pushState(null, '', view === 'overview' ? '/app' : `/app/${view}`);
+    } catch {
       window.location.hash = '/app';
     }
   };
-
-  // Return to landing page from dashboard
   const handleNavigateHome = () => {
     setCurrentRoute('landing');
     try {
       window.history.pushState(null, '', '/');
-    } catch (e) {
+    } catch {
       window.location.hash = '/';
     }
   };
-
-  // Navigation Handler inside dashboard
   const handleNavigate = (view: NavItemKey) => {
-    if (view === 'send') {
-      setActiveModal('send');
-    } else if (view === 'receive') {
-      setActiveModal('receive');
-    } else {
-      setActiveView(view);
-      try {
-        window.history.pushState(null, '', `/app/${view}`);
-      } catch (e) {
-        // Fallback
+    if (view === 'send') setActiveModal('send');
+    else if (view === 'receive') setActiveModal('receive');
+    else goApp(view);
+  };
+
+  const handleToggleDataMode = () => {
+    const next = dataMode === 'real' ? 'demo' : 'real';
+    setDataMode(next);
+    push(
+      next === 'demo'
+        ? notif('Demo mode on', 'Balances and history are now simulated. Nothing you do in demo mode is sent on-chain.', 'system')
+        : notif('Real data', 'Showing on-chain balances and history for your wallet.', 'system')
+    );
+  };
+
+  /** Real transfers: refresh chain state and notify only on outcomes the chain has decided. */
+  const handleTransferSettled = useCallback(
+    (phase: TxPhase, summary: { recipientLabel: string; amount: bigint }) => {
+      const amt = `${formatTokenDisplay(summary.amount, 18)} MUSD`;
+      if (phase.phase === 'confirmed') push(notif('Payment confirmed', `${amt} to ${summary.recipientLabel} was confirmed on-chain.`, 'payment'));
+      else if (phase.phase === 'reverted') push(notif('Transfer reverted', `${amt} to ${summary.recipientLabel} failed on-chain. No MUSD moved.`, 'payment'));
+      else if (phase.phase === 'unknown') push(notif('Transfer awaiting confirmation', `${amt} to ${summary.recipientLabel} was broadcast; its outcome is not confirmed yet.`, 'payment'));
+      if (phase.phase === 'confirmed' || phase.phase === 'reverted' || phase.phase === 'unknown') {
+        real.refetch();
+        activity.refresh();
       }
-    }
+    },
+    [push, real, activity]
+  );
+
+  const handleDemoSend = (s: DemoSend) => {
+    setDemoMusd((b) => (b >= s.amount ? b - s.amount : b));
+    setDemoActivity((prev) => [
+      {
+        key: `demo-${Date.now()}`,
+        mode: 'demo',
+        kind: 'send',
+        status: 'simulated',
+        amount: s.amount,
+        decimals: 18,
+        symbol: 'MUSD',
+        counterparty: s.recipient,
+        counterpartyName: s.recipientLabel,
+        hash: null,
+        chainId: null,
+        timestamp: Date.now(),
+        memo: s.memo || undefined,
+        source: 'demo',
+      },
+      ...prev,
+    ]);
+    push(notif('Simulated transfer (demo)', `${formatTokenDisplay(s.amount, 18)} MUSD to ${s.recipientLabel}. Nothing was sent on-chain.`, 'payment'));
   };
 
-  // Payment Completed Handler (Real vs Demo updates)
-  const handleSendComplete = (newTx: Transaction) => {
-    if (dataMode === 'real') {
-      const realTx: Transaction = {
-        ...newTx,
-        isDemo: false,
-      };
-      setRealTransactions((prev) => [realTx, ...prev]);
-      if (address) {
-        saveRealTransaction(address, realTx);
-      }
-      setRealBalance((prev) => Math.max(0, prev - realTx.amount));
-      setNotifications((prev) => [
-        {
-          id: `notif-${Date.now()}`,
-          title: 'Payment Sent',
-          message: `Transferred $${realTx.amount.toFixed(2)} MUSD to ${realTx.counterparty}.`,
-          timestamp: 'Just now',
-          read: false,
-          type: 'payment',
-        },
-        ...prev,
-      ]);
-    } else {
-      setDemoTransactions((prev) => [newTx, ...prev]);
-      setDemoBalance((prev) => Math.max(0, prev - newTx.amount));
-      setNotifications((prev) => [
-        {
-          id: `notif-${Date.now()}`,
-          title: 'Payment Sent (Demo)',
-          message: `Transferred $${newTx.amount.toFixed(2)} MUSD to ${newTx.counterparty}.`,
-          timestamp: 'Just now',
-          read: false,
-          type: 'payment',
-        },
-        ...prev,
-      ]);
-    }
-  };
-
-  // Load sample data for testing
-  const handleLoadSampleTransactions = () => {
-    setDataMode('demo');
-    setDemoTransactions(SAMPLE_TRANSACTIONS);
-  };
-
-  // Reset demo transactions
   const handleResetDemoData = () => {
-    setDemoTransactions([]);
-    setDemoBalance(DEMO_CONNECTED_BALANCE);
+    setDemoMusd(DEMO_MUSD_BALANCE);
+    setDemoActivity(createDemoActivity());
   };
 
-  const handleMarkNotificationsRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+  const handleUsernameSuccess = (name: string) => {
+    setConnectedUsername(name);
+    if (address) {
+      try {
+        sessionStorage.setItem(`cambio_username_prompt_dismissed_${address.toLowerCase()}`, 'true');
+      } catch {
+        // ignore
+      }
+    }
+    push(notif('Username verified', `@${name} is now linked to ${shortenAddress(address)}.`, 'wallet'));
+  };
+  const handleOpenUsernameModal = (mode?: 'create' | 'change') => {
+    setUsernameModalMode(mode || (connectedUsername ? 'change' : 'create'));
+    setIsUsernameModalOpen(true);
+  };
+  const handleCloseUsernameModal = () => {
+    if (address) {
+      try {
+        sessionStorage.setItem(`cambio_username_prompt_dismissed_${address.toLowerCase()}`, 'true');
+      } catch {
+        // ignore
+      }
+    }
+    setIsUsernameModalOpen(false);
   };
 
-  const paymentReq = activePaymentRequest || parsePaymentRequestFromUrl();
-  if (currentRoute === 'pay' && paymentReq) {
+  const markAllRead = () => setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+  const transactions = dataMode === 'demo' ? demoActivity : activity.items;
+
+  const sendModal = (
+    <SendModal
+      isOpen={activeModal === 'send'}
+      onClose={() => setActiveModal('none')}
+      wallet={wallet}
+      onOpenConnectWallet={handleOpenWalletModal}
+      onTransferSettled={handleTransferSettled}
+      onDemoSend={handleDemoSend}
+    />
+  );
+
+  if (currentRoute === 'pay' && paymentLink) {
     return (
-      <>
-        <PaymentRequestPage
-          request={paymentReq}
-          wallet={wallet}
-          onConnectWallet={handleOpenWalletModal}
-          onPayRequest={handlePayPaymentRequest}
-          onGoToDashboard={() => {
-            setCurrentRoute('app');
-            setActiveView('overview');
-            try {
-              window.history.pushState(null, '', '/app');
-            } catch (e) {
-              window.location.hash = '/app';
-            }
-          }}
-        />
-
-        {/* Send Modal if opened from payment request */}
-        <SendModal
-          isOpen={activeModal === 'send'}
-          onClose={() => {
-            setActiveModal('none');
-            setSendPrefill(null);
-          }}
-          wallet={wallet}
-          onSendComplete={handleSendComplete}
-          onOpenConnectWallet={handleOpenWalletModal}
-          initialRecipient={sendPrefill?.recipient}
-          initialAmount={sendPrefill?.amount}
-          initialMemo={sendPrefill?.memo}
-        />
-      </>
+      <PaymentRequestPage
+        link={paymentLink}
+        wallet={wallet}
+        onConnectWallet={handleOpenWalletModal}
+        onGoToDashboard={() => goApp('overview')}
+        onTransferSettled={handleTransferSettled}
+      />
     );
   }
 
@@ -706,71 +364,51 @@ export default function App() {
           wallet={wallet}
           onConnectWallet={handleOpenWalletModal}
           onDisconnectWallet={handleDisconnect}
-          onExplore={handleExplore}
+          onExplore={() => goApp('overview')}
           connectionError={connectionError}
           onDismissError={() => setConnectionError(null)}
         />
-
-        {/* Slide-over Overlays */}
-        <SendModal
-          isOpen={activeModal === 'send'}
-          onClose={() => setActiveModal('none')}
-          wallet={wallet}
-          onSendComplete={handleSendComplete}
-          onOpenConnectWallet={handleOpenWalletModal}
-        />
-
-        <ReceiveModal
-          isOpen={activeModal === 'receive'}
-          onClose={() => setActiveModal('none')}
-          wallet={wallet}
-          onOpenConnectWallet={handleOpenWalletModal}
-        />
+        {sendModal}
+        <ReceiveModal isOpen={activeModal === 'receive'} onClose={() => setActiveModal('none')} wallet={wallet} onOpenConnectWallet={handleOpenWalletModal} />
       </>
     );
   }
 
+  const sidebarProps = {
+    activeView,
+    onNavigate: handleNavigate,
+    wallet,
+    notifications,
+    onMarkNotificationsRead: markAllRead,
+  };
+
   return (
     <div className="min-h-screen bg-[#F5F5F3] dark:bg-[#0C0C0D] text-[#111111] dark:text-[#F5F5F7] flex flex-col lg:flex-row antialiased font-sans transition-colors duration-200">
-      {/* Desktop Persistent Sidebar */}
       <div className={`hidden lg:block h-screen sticky top-0 shrink-0 transition-all duration-300 ${isProfileModalOpen ? 'filter blur-[2px] pointer-events-none' : ''}`}>
         <Sidebar
-          activeView={activeView}
-          onNavigate={handleNavigate}
+          {...sidebarProps}
           onNavigateHome={handleNavigateHome}
-          wallet={wallet}
           onConnectWallet={handleOpenWalletModal}
           onDisconnectWallet={handleDisconnect}
-          notifications={notifications}
-          onMarkNotificationsRead={handleMarkNotificationsRead}
           onOpenCreateUsername={() => handleOpenUsernameModal()}
           onOpenProfile={() => setIsProfileModalOpen(true)}
         />
       </div>
 
-      {/* Mobile Sidebar Overlay Drawer */}
       {isMobileMenuOpen && (
-        <div
-          className="fixed inset-0 z-50 lg:hidden flex"
-          role="dialog"
-          aria-modal="true"
-        >
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 bg-black/40 dark:bg-black/75 backdrop-blur-xs transition-opacity"
-            onClick={() => setIsMobileMenuOpen(false)}
-          />
-
-          {/* Drawer content */}
+        <div className="fixed inset-0 z-50 lg:hidden flex" role="dialog" aria-modal="true" aria-label="Navigation" onKeyDown={(e) => e.key === 'Escape' && setIsMobileMenuOpen(false)}>
+          <div className="fixed inset-0 bg-black/40 dark:bg-black/75 backdrop-blur-xs" onClick={() => setIsMobileMenuOpen(false)} />
           <div className="relative w-4/5 max-w-xs bg-white dark:bg-[#111113] h-full z-10 shadow-2xl animate-in slide-in-from-left duration-200">
             <Sidebar
-              activeView={activeView}
-              onNavigate={handleNavigate}
+              {...sidebarProps}
+              onNavigate={(v) => {
+                setIsMobileMenuOpen(false);
+                handleNavigate(v);
+              }}
               onNavigateHome={() => {
                 setIsMobileMenuOpen(false);
                 handleNavigateHome();
               }}
-              wallet={wallet}
               onConnectWallet={() => {
                 setIsMobileMenuOpen(false);
                 handleOpenWalletModal();
@@ -780,9 +418,7 @@ export default function App() {
                 handleDisconnect();
               }}
               onCloseMobile={() => setIsMobileMenuOpen(false)}
-              isMobile={true}
-              notifications={notifications}
-              onMarkNotificationsRead={handleMarkNotificationsRead}
+              isMobile
               onOpenCreateUsername={() => {
                 setIsMobileMenuOpen(false);
                 handleOpenUsernameModal();
@@ -796,9 +432,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Main Viewport */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Top Bar with real WalletConnect button and profile bar */}
         <TopBar
           activeView={activeView}
           wallet={wallet}
@@ -807,7 +441,7 @@ export default function App() {
           onOpenNetworks={handleOpenNetworksModal}
           onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
           notifications={notifications}
-          onMarkNotificationsRead={handleMarkNotificationsRead}
+          onMarkNotificationsRead={markAllRead}
           onNavigateHome={handleNavigateHome}
           onNavigate={handleNavigate}
           onOpenCreateUsername={() => handleOpenUsernameModal()}
@@ -817,18 +451,16 @@ export default function App() {
           isProfileOpen={isProfileModalOpen}
         />
 
-        {/* Dynamic Content Surface */}
         <main className={`flex-1 px-4 sm:px-8 py-6 sm:py-8 max-w-5xl w-full mx-auto space-y-6 sm:space-y-8 transition-all duration-300 ${isProfileModalOpen ? 'filter blur-[3px] pointer-events-none select-none' : ''}`}>
+          {dataMode === 'demo' && <DemoBanner onExit={handleToggleDataMode} />}
+
           {connectionError && (
-            <div className="p-4 rounded-2xl bg-[#FFFBEB] dark:bg-[#2C210E] border border-[#FDE68A] dark:border-[#78350F] hover:border-[#FCD34D] dark:hover:border-[#B45309] hover:shadow-xs text-[#B45309] dark:text-[#FBBF24] text-xs flex items-center justify-between shadow-xs animate-in fade-in duration-150 transition-all">
+            <div role="alert" className="p-4 rounded-2xl bg-[#FFFBEB] dark:bg-[#2C210E] border border-[#FDE68A] dark:border-[#78350F] text-[#B45309] dark:text-[#FBBF24] text-xs flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <AlertTriangle className="w-4 h-4 shrink-0 text-[#B45309] dark:text-[#FBBF24]" />
+                <AlertTriangle className="w-4 h-4 shrink-0" />
                 <span>{connectionError}</span>
               </div>
-              <button
-                onClick={() => setConnectionError(null)}
-                className="text-[11px] font-semibold text-[#B45309] dark:text-[#FBBF24] hover:text-[#78350F] dark:hover:text-[#FCD34D] hover:underline hover:bg-[#FDE68A]/40 dark:hover:bg-[#78350F]/40 py-1 px-2.5 rounded-lg hover:scale-105 active:scale-95 transition-all duration-150 shrink-0 ml-3"
-              >
+              <button onClick={() => setConnectionError(null)} className="text-[11px] font-semibold hover:underline py-1 px-2.5 rounded-lg shrink-0 ml-3">
                 Dismiss
               </button>
             </div>
@@ -836,15 +468,7 @@ export default function App() {
 
           {activeView === 'overview' && (
             <>
-              {/* First-time banner if disconnected */}
-              {!wallet.isConnected && (
-                <FirstTimeNotice
-                  onConnectWallet={handleOpenWalletModal}
-                  status={wallet.status}
-                />
-              )}
-
-              {/* Prominent Balance Card */}
+              {!wallet.isConnected && <FirstTimeNotice onConnectWallet={handleOpenWalletModal} status={wallet.status} />}
               <BalanceCard
                 wallet={wallet}
                 isMasked={isBalanceMasked}
@@ -852,24 +476,35 @@ export default function App() {
                 onSend={() => setActiveModal('send')}
                 onReceive={() => setActiveModal('receive')}
                 onConnectWallet={handleOpenWalletModal}
+                onRefresh={() => {
+                  real.refetch();
+                  activity.refresh();
+                }}
+                isRefreshing={real.isRefreshing}
               />
-
-              {/* Recent Activity Section */}
-              <RecentActivity
-                transactions={transactions}
-                onViewAll={() => setActiveView('activity')}
-                onSend={() => setActiveModal('send')}
-                onReceive={() => setActiveModal('receive')}
-              />
+              {wallet.isConnected && (
+                <RecentActivity
+                  transactions={transactions}
+                  loading={dataMode === 'real' && activity.loading}
+                  coverage={dataMode === 'real' ? activity.coverage : 'Simulated demo records'}
+                  onViewAll={() => goApp('activity')}
+                  onSend={() => setActiveModal('send')}
+                  onReceive={() => setActiveModal('receive')}
+                />
+              )}
             </>
           )}
 
           {activeView === 'activity' && (
             <ActivityView
               transactions={transactions}
+              mode={dataMode}
+              loading={dataMode === 'real' && activity.loading}
+              coverage={dataMode === 'real' ? (wallet.isConnected ? activity.coverage : 'Connect a wallet to see its on-chain history.') : 'Simulated demo records — not on-chain.'}
+              error={dataMode === 'real' ? activity.error : null}
+              onRefresh={dataMode === 'real' && wallet.isConnected ? activity.refresh : undefined}
               onOpenSend={() => setActiveModal('send')}
               onOpenReceive={() => setActiveModal('receive')}
-              onLoadSampleData={handleLoadSampleTransactions}
             />
           )}
 
@@ -877,8 +512,12 @@ export default function App() {
             <SwapView
               wallet={wallet}
               onConnectWallet={handleOpenWalletModal}
-              onOpenNetworks={handleOpenNetworksModal}
-              onSwapCompleted={handleSwapCompleted}
+              onSwapSettled={(phase, label) => {
+                if (phase.phase === 'confirmed') push(notif('Swap confirmed', `${label} was confirmed on-chain.`, 'payment'));
+                else if (phase.phase === 'reverted') push(notif('Swap reverted', `${label} failed on-chain.`, 'payment'));
+                real.refetch();
+                activity.refresh();
+              }}
             />
           )}
 
@@ -886,19 +525,14 @@ export default function App() {
             <RequestView
               wallet={wallet}
               onConnectWallet={handleOpenWalletModal}
-              onOpenPaymentRequestPage={(req) => {
-                setActivePaymentRequest(req);
-                setCurrentRoute('pay');
+              onOpenPaymentRequestPage={(url) => {
                 try {
-                  window.history.pushState(null, '', `/#pay?req=${encodeURIComponent(JSON.stringify({
-                    id: req.id,
-                    to: req.recipientAddress,
-                    amt: req.amount,
-                    note: req.note,
-                    exp: req.expiryHours,
-                    cat: req.createdAt
-                  }))}`);
-                } catch (e) {}
+                  window.history.pushState(null, '', url);
+                } catch {
+                  window.location.href = url;
+                }
+                setPaymentLink(parsePaymentLink(url));
+                setCurrentRoute('pay');
               }}
             />
           )}
@@ -906,13 +540,9 @@ export default function App() {
           {activeView === 'notifications' && (
             <NotificationsView
               notifications={notifications}
-              onMarkAllRead={handleMarkNotificationsRead}
+              onMarkAllRead={markAllRead}
               onClearAll={() => setNotifications([])}
-              onMarkSingleRead={(id) => {
-                setNotifications((prev) =>
-                  prev.map((n) => (n.id === id ? { ...n, read: true } : n))
-                );
-              }}
+              onMarkSingleRead={(id) => setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)))}
               onNavigate={handleNavigate}
             />
           )}
@@ -934,21 +564,7 @@ export default function App() {
         </main>
       </div>
 
-      {/* Slide-over Overlays */}
-      <SendModal
-        isOpen={activeModal === 'send'}
-        onClose={() => {
-          setActiveModal('none');
-          setSendPrefill(null);
-        }}
-        wallet={wallet}
-        onSendComplete={handleSendComplete}
-        onOpenConnectWallet={handleOpenWalletModal}
-        initialRecipient={sendPrefill?.recipient}
-        initialAmount={sendPrefill?.amount}
-        initialMemo={sendPrefill?.memo}
-      />
-
+      {sendModal}
       <ReceiveModal
         isOpen={activeModal === 'receive'}
         onClose={() => setActiveModal('none')}
@@ -957,19 +573,19 @@ export default function App() {
         onOpenCreateUsername={() => handleOpenUsernameModal('create')}
       />
 
-      {/* Unique Username Claim / Update Modal Dialog */}
       {wallet.address && (
         <UsernameModal
           isOpen={isUsernameModalOpen}
           onClose={handleCloseUsernameModal}
           walletAddress={wallet.address}
+          chainId={chain?.chainId ?? null}
           currentUsername={connectedUsername}
           mode={usernameModalMode}
+          identityHealth={identityHealth}
           onSuccess={handleUsernameSuccess}
         />
       )}
 
-      {/* Connected Wallet Profile Modal with Deep Blurred Background */}
       {wallet.address && (
         <ProfileModal
           isOpen={isProfileModalOpen}

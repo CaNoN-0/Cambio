@@ -1,374 +1,335 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  ArrowRight, 
-  Wallet, 
-  Copy, 
-  Check, 
-  Clock, 
-  AlertCircle, 
-  ExternalLink, 
-  ShieldCheck, 
-  Send, 
-  ArrowLeft,
-  DollarSign,
-  Loader2
-} from 'lucide-react';
-import { WalletState, PaymentRequest } from '../types';
-import { shortenAddress, getExplorerAddressUrl } from '../utils/format';
-import { isRequestExpired, formatExpiryRemaining } from '../utils/paymentRequest';
-import { getUsernameForWallet, resolveUsername } from '../services/usernameRegistry';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ArrowRight, Wallet, Copy, Check, Clock, AlertCircle, ExternalLink, ShieldCheck, ShieldAlert, Send, ArrowLeft, Loader2, Link2 } from 'lucide-react';
+import type { Address, Hex } from 'viem';
+import { useSwitchChain } from 'wagmi';
+import type { WalletState } from '../types';
+import { copyToClipboard, getExplorerAddressUrl, getExplorerTxUrl, shortenAddress } from '../utils/format';
+import { formatTimeRemaining, isExpired, verifyRequestSignature, encodePaymentLink, type ParsedPaymentLink } from '../lib/paymentRequest';
+import { formatTokenDisplay, formatUnitsExact } from '../lib/amounts';
+import { getChainConfig } from '../config/chains';
+import { lookupAddress, resolveUsername } from '../services/identityClient';
+import { publicClientFor } from '../lib/wagmiDeps';
+import { verifyPaymentTx, type SettlementCheck } from '../lib/requestSettlement';
+import type { TxPhase } from '../lib/transactions';
 import { ThemeToggle } from './ThemeToggle';
 import { HalftonePattern } from './HalftonePattern';
+import { SendModal } from './SendModal';
 import logoImage from '@/logo.png';
 
 interface PaymentRequestPageProps {
-  request: PaymentRequest;
+  link: ParsedPaymentLink;
   wallet: WalletState;
   onConnectWallet: () => void;
-  onPayRequest: (request: PaymentRequest) => void;
   onGoToDashboard: () => void;
+  onTransferSettled?: (phase: TxPhase, summary: { recipientLabel: string; amount: bigint }) => void;
 }
 
-export const PaymentRequestPage: React.FC<PaymentRequestPageProps> = ({
-  request,
-  wallet,
-  onConnectWallet,
-  onPayRequest,
-  onGoToDashboard,
-}) => {
-  const [copied, setCopied] = useState(false);
-  const [recipientAddress, setRecipientAddress] = useState<string>(request.recipientAddress || '');
-  const [recipientUsername, setRecipientUsername] = useState<string | null>(
-    request.recipientUsername || null
-  );
-  const [isResolving, setIsResolving] = useState<boolean>(!request.recipientAddress && !!request.recipientUsername);
-  
-  // Custom amount state when request was generated without a pre-set amount (e.g. general receive QR)
-  const isFixedAmount = typeof request.amount === 'number' && request.amount > 0;
-  const [enteredAmount, setEnteredAmount] = useState<string>(
-    isFixedAmount ? request.amount.toString() : '10'
-  );
+type SigState = 'verifying' | 'valid' | 'invalid' | 'unsigned';
 
-  const effectiveAmount = isFixedAmount
-    ? request.amount
-    : parseFloat(enteredAmount) > 0
-    ? parseFloat(enteredAmount)
-    : 0;
+export const PaymentRequestPage: React.FC<PaymentRequestPageProps> = ({ link, wallet, onConnectWallet, onGoToDashboard, onTransferSettled }) => {
+  const { switchChainAsync } = useSwitchChain();
+  const [sig, setSig] = useState<SigState>(link.kind === 'signed' ? 'verifying' : 'unsigned');
+  const [recipient, setRecipient] = useState<Address | null>(link.kind === 'signed' ? link.request.recipient : link.kind === 'unsigned' ? link.recipient : null);
+  const [verifiedName, setVerifiedName] = useState<string | null>(null);
+  const [resolveError, setResolveError] = useState<string | null>(null);
+  const [payOpen, setPayOpen] = useState(false);
+  const [proof, setProof] = useState<SettlementCheck | null>(null);
+  const [paidHash, setPaidHash] = useState<Hex | null>(link.kind === 'signed' ? link.proofTx : null);
+  const [copied, setCopied] = useState<string | null>(null);
+  const [switchError, setSwitchError] = useState<string | null>(null);
 
-  // Resolve recipient username or address
+  const chain = link.kind === 'signed' ? getChainConfig(link.request.chainId) : link.kind === 'unsigned' ? getChainConfig(link.chainId) : null;
+  const amount = link.kind === 'signed' ? BigInt(link.request.amount) : link.kind === 'unsigned' ? link.amount : null;
+  const memo = link.kind === 'signed' ? link.request.memo : link.kind === 'unsigned' ? link.memo : '';
+  const expiresAt = link.kind === 'signed' ? link.request.expiresAt : link.kind === 'unsigned' ? link.expiresAt : null;
+  const expired = isExpired(expiresAt);
+
+  // 1. Verify the request signature (EOA or ERC-1271) before anything else.
   useEffect(() => {
-    let isCancelled = false;
-    if (!recipientAddress && recipientUsername) {
-      setIsResolving(true);
-      resolveUsername(recipientUsername)
+    if (link.kind !== 'signed' || !chain) return;
+    let cancelled = false;
+    setSig('verifying');
+    verifyRequestSignature(link.request, link.signature, (args) => publicClientFor(chain.chainId).verifyTypedData(args))
+      .then((ok) => !cancelled && setSig(ok ? 'valid' : 'invalid'))
+      .catch(() => !cancelled && setSig('invalid'));
+    return () => {
+      cancelled = true;
+    };
+  }, [link, chain]);
+
+  // 2. Display name comes from the verified registry, never from the link.
+  useEffect(() => {
+    let cancelled = false;
+    setResolveError(null);
+    if (link.kind === 'unsigned' && !link.recipient && link.recipientUsername) {
+      resolveUsername(link.recipientUsername)
         .then((rec) => {
-          if (!isCancelled && rec && rec.address) {
-            setRecipientAddress(rec.address);
-            if (rec.display) setRecipientUsername(rec.display.replace(/^@/, ''));
-          }
-          if (!isCancelled) setIsResolving(false);
+          if (cancelled) return;
+          if (rec) {
+            setRecipient(rec.address);
+            setVerifiedName(rec.display);
+          } else setResolveError(`@${link.recipientUsername} is not a registered Cambio username.`);
         })
-        .catch(() => {
-          if (!isCancelled) setIsResolving(false);
-        });
-    } else if (!recipientUsername && recipientAddress) {
-      getUsernameForWallet(recipientAddress).then((rec) => {
-        if (!isCancelled && rec) {
-          setRecipientUsername(rec.displayUsername || rec.username);
-        }
-      });
+        .catch(() => !cancelled && setResolveError('The username service is unavailable, so @' + link.recipientUsername + ' cannot be resolved right now.'));
+    } else if (recipient) {
+      lookupAddress(recipient)
+        .then((rec) => !cancelled && setVerifiedName(rec?.display ?? null))
+        .catch(() => !cancelled && setVerifiedName(null));
     }
     return () => {
-      isCancelled = true;
+      cancelled = true;
     };
-  }, [recipientAddress, recipientUsername]);
+  }, [link, recipient]);
 
-  const expired = isRequestExpired(request);
-  const isOwnRequest =
-    wallet.isConnected &&
-    wallet.address &&
-    recipientAddress &&
-    wallet.address.toLowerCase() === recipientAddress.toLowerCase();
+  // 3. A payment proof (tx hash) is checked against the chain, never trusted.
+  useEffect(() => {
+    if (link.kind !== 'signed' || !paidHash || !chain) return;
+    let cancelled = false;
+    setProof(null);
+    verifyPaymentTx(publicClientFor(chain.chainId) as never, link.request, paidHash).then((res) => !cancelled && setProof(res));
+    return () => {
+      cancelled = true;
+    };
+  }, [link, paidHash, chain]);
 
-  const handleCopyRecipient = () => {
-    const textToCopy = recipientAddress || (recipientUsername ? `@${recipientUsername}` : '');
-    if (textToCopy) {
-      navigator.clipboard.writeText(textToCopy);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+  const lockedRequest = useMemo(
+    () => (link.kind === 'signed' && sig === 'valid' ? { request: link.request, recipientLabel: verifiedName ?? shortenAddress(link.request.recipient) } : null),
+    [link, sig, verifiedName]
+  );
+
+  const flash = async (key: string, text: string) => {
+    if (await copyToClipboard(text)) {
+      setCopied(key);
+      setTimeout(() => setCopied(null), 1800);
     }
   };
 
-  const handlePay = () => {
-    if (effectiveAmount <= 0) return;
-    onPayRequest({
-      ...request,
-      amount: effectiveAmount,
-      recipientAddress: recipientAddress || request.recipientAddress,
-      recipientUsername: recipientUsername || request.recipientUsername,
-    });
+  const isOwn = !!(wallet.address && recipient && wallet.address.toLowerCase() === recipient.toLowerCase());
+  const wrongChain = wallet.isConnected && chain && wallet.chainId !== chain.chainId;
+  const payable = !!chain && !!recipient && !expired && (link.kind === 'unsigned' || sig === 'valid') && !(proof?.state === 'settled');
+  const proofLink = link.kind === 'signed' && paidHash ? encodePaymentLink(window.location.origin, link.request, link.signature, paidHash) : null;
+
+  const handleSwitch = async () => {
+    if (!chain) return;
+    setSwitchError(null);
+    try {
+      await switchChainAsync({ chainId: chain.chainId });
+    } catch {
+      setSwitchError(`Switch your wallet to ${chain.name} to pay.`);
+    }
   };
 
-  return (
-    <div className="min-h-screen bg-[#F5F5F3] dark:bg-[#0C0C0D] text-[#111111] dark:text-[#F5F5F7] flex flex-col justify-between antialiased selection:bg-[#111111] selection:text-white dark:selection:bg-white dark:selection:text-black transition-colors duration-200">
-      {/* Top Header matching landing page */}
-      <header className="w-full shrink-0 border-b border-[#E2E2E0] dark:border-[#26262B] bg-[#FFFFFF]/80 dark:bg-[#111113]/80 backdrop-blur-md sticky top-0 z-40 transition-colors">
-        <div className="max-w-4xl mx-auto px-4 sm:px-8 h-20 flex items-center justify-between">
-          <div 
-            onClick={onGoToDashboard} 
-            className="flex items-center gap-3 cursor-pointer group select-none"
-            title="Open Cambio Dashboard"
-          >
-            <img
-              src={logoImage}
-              alt="Cambio Logo"
-              className="w-9 h-9 object-contain dark:invert select-none transition-transform duration-200 group-hover:scale-105"
-            />
-            <span className="text-[16px] font-bold tracking-[0.12em] text-[#111111] dark:text-[#FFFFFF] uppercase leading-none font-sans">
-              Cambio
-            </span>
-          </div>
+  if (link.kind === 'invalid') {
+    return (
+      <Shell onGoToDashboard={onGoToDashboard}>
+        <div className="p-5 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-700 dark:text-red-300 space-y-2" role="alert">
+          <div className="flex items-center gap-2 font-bold text-sm"><ShieldAlert className="w-5 h-5" /> This payment link is not valid</div>
+          <p className="text-xs">{link.error}</p>
+          <p className="text-xs">Do not pay from this link. Ask the recipient to send a new one.</p>
+        </div>
+      </Shell>
+    );
+  }
 
+  return (
+    <Shell onGoToDashboard={onGoToDashboard}>
+      <div className="relative z-10 flex items-center justify-between text-xs">
+        <span className="font-semibold uppercase tracking-wider text-[#777777] dark:text-[#A0A0A0]">MUSD payment request</span>
+        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full font-semibold uppercase tracking-wider border ${expired ? 'bg-red-500/10 text-red-600 border-red-500/20' : proof?.state === 'settled' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : 'bg-[#F0F0EE] dark:bg-[#1A1A1D] text-[#555555] dark:text-[#A0A0A0] border-[#E2E2E0] dark:border-[#26262B]'}`}>
+          {expired ? 'Expired' : proof?.state === 'settled' ? 'Paid' : 'Awaiting payment'}
+        </span>
+      </div>
+
+      {/* Authenticity */}
+      {link.kind === 'signed' ? (
+        sig === 'verifying' ? (
+          <Banner tone="info" icon={<Loader2 className="w-4 h-4 animate-spin" />} title="Verifying the recipient’s signature…" />
+        ) : sig === 'valid' ? (
+          <Banner tone="ok" icon={<ShieldCheck className="w-4 h-4" />} title="Signed by the recipient’s wallet">
+            The address, amount, note and expiry below were signed by {shortenAddress(link.request.recipient)} and have not been changed.
+          </Banner>
+        ) : (
+          <Banner tone="bad" icon={<ShieldAlert className="w-4 h-4" />} title="Signature check failed — do not pay">
+            This link was modified after it was signed, or was not signed by the address it pays. Ask the recipient for a new link.
+          </Banner>
+        )
+      ) : (
+        <Banner tone="warn" icon={<AlertCircle className="w-4 h-4" />} title="Unsigned link">
+          Cambio cannot confirm who created this link. Only pay if you trust where it came from, and check the address below.
+        </Banner>
+      )}
+
+      <div className="relative z-10 text-center py-2 space-y-2">
+        <span className="text-xs sm:text-sm text-[#777777] dark:text-[#A0A0A0] block">
+          {verifiedName ? (
+            <>Paying <strong className="text-[#111111] dark:text-[#FFFFFF]">{verifiedName}</strong> <span className="text-emerald-600 text-[11px]">(verified username)</span></>
+          ) : recipient ? (
+            <>Paying <strong className="text-[#111111] dark:text-[#FFFFFF] font-mono">{shortenAddress(recipient)}</strong></>
+          ) : (
+            'Resolving recipient…'
+          )}
+        </span>
+        <div className="text-4xl sm:text-5xl font-bold font-mono tracking-tight text-[#111111] dark:text-[#FFFFFF]">
+          {amount !== null ? formatTokenDisplay(amount, chain?.tokens.MUSD.decimals ?? 18, { maxFractionDigits: 6 }) : '—'} <span className="text-lg font-medium text-[#777777]">MUSD</span>
+        </div>
+        {amount === null && <p className="text-xs text-[#777777]">The payer chooses the amount.</p>}
+        <p className="text-xs text-[#777777] dark:text-[#A0A0A0]">{chain ? `${chain.name} · chain ${chain.chainId}${chain.isTestnet ? ' · test funds' : ' · real funds'}` : 'Unsupported network'}</p>
+      </div>
+
+      {memo && (
+        <div className="relative z-10 p-4 rounded-2xl bg-[#F5F5F3] dark:bg-[#1A1A1D] border border-[#E2E2E0] dark:border-[#26262B] space-y-1">
+          <span className="text-xs font-semibold uppercase tracking-wider text-[#777777]">Note{link.kind === 'signed' ? ' (signed)' : ''}</span>
+          <p className="text-sm text-[#111111] dark:text-[#FFFFFF] break-words">“{memo}”</p>
+        </div>
+      )}
+
+      <div className="relative z-10 p-4 rounded-2xl bg-[#F0F0EE]/70 dark:bg-[#1A1A1D]/70 border border-[#E2E2E0] dark:border-[#26262B] space-y-2">
+        <div className="flex items-center justify-between text-xs">
+          <span className="font-semibold uppercase tracking-wider text-[#777777]">Recipient address</span>
+          {recipient && (
+            <div className="flex items-center gap-2">
+              <button type="button" onClick={() => flash('addr', recipient)} className="inline-flex items-center gap-1 font-semibold text-[#777777] hover:text-[#111111] dark:hover:text-[#FFFFFF]">
+                {copied === 'addr' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />} {copied === 'addr' ? 'Copied' : 'Copy'}
+              </button>
+              {chain && getExplorerAddressUrl(recipient, chain.chainId) && (
+                <a href={getExplorerAddressUrl(recipient, chain.chainId)!} target="_blank" rel="noopener noreferrer" className="text-[#777777] hover:text-[#111111]" aria-label="View recipient on explorer">
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              )}
+            </div>
+          )}
+        </div>
+        {recipient ? <div className="font-mono text-xs font-semibold text-[#111111] dark:text-[#FFFFFF] break-all select-all">{recipient}</div> : resolveError ? <p className="text-xs text-red-600">{resolveError}</p> : <Loader2 className="w-4 h-4 animate-spin" />}
+      </div>
+
+      {expiresAt !== null && (
+        <div className="relative z-10 flex items-center justify-between text-xs text-[#777777] px-1">
+          <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> {formatTimeRemaining(expiresAt)}</span>
+          {link.kind === 'signed' && <span className="font-mono">ID {link.request.id.slice(2, 10)}</span>}
+        </div>
+      )}
+
+      {/* Settlement proof */}
+      {paidHash && chain && (
+        <div className="relative z-10">
+          {proof === null ? (
+            <Banner tone="info" icon={<Loader2 className="w-4 h-4 animate-spin" />} title="Checking the payment on-chain…" />
+          ) : proof.state === 'settled' ? (
+            <Banner tone="ok" icon={<ShieldCheck className="w-4 h-4" />} title={`Paid — verified on ${chain.name}${proof.result.status === 'settled_after_expiry' ? ' (after expiry)' : ''}`}>
+              Transaction{' '}
+              <a href={getExplorerTxUrl(paidHash, chain.chainId)!} target="_blank" rel="noopener noreferrer" className="underline font-mono">{shortenAddress(paidHash, 10, 6)}</a>{' '}
+              transferred exactly this amount to this address and references this request, in block {proof.result.blockNumber}.
+            </Banner>
+          ) : proof.state === 'invalid' ? (
+            <Banner tone="bad" icon={<ShieldAlert className="w-4 h-4" />} title="This transaction does not pay this request">
+              {proof.result.status === 'reverted' ? 'The transaction reverted.' : proof.result.status === 'mismatch' ? proof.result.reason : ''}
+            </Banner>
+          ) : proof.state === 'not_found' ? (
+            <Banner tone="warn" icon={<Clock className="w-4 h-4" />} title="Transaction not found yet">It may still be pending. Refresh in a moment.</Banner>
+          ) : (
+            <Banner tone="warn" icon={<AlertCircle className="w-4 h-4" />} title="Could not verify right now">{proof.message}</Banner>
+          )}
+          {proofLink && proof?.state === 'settled' && (
+            <button type="button" onClick={() => flash('proof', proofLink)} className="mt-2 w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-[#E2E2E0] dark:border-[#26262B] text-xs font-semibold">
+              {copied === 'proof' ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Link2 className="w-3.5 h-3.5" />} {copied === 'proof' ? 'Proof link copied' : 'Copy payment proof link for the recipient'}
+            </button>
+          )}
+        </div>
+      )}
+
+      <div className="relative z-10 pt-2 space-y-3">
+        {proof?.state === 'settled' ? null : expired ? (
+          <p className="p-3.5 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-600 text-xs text-center">This request has expired. Ask the recipient for a new one.</p>
+        ) : !chain ? (
+          <p className="p-3.5 rounded-2xl bg-red-500/10 text-red-600 text-xs text-center">This request is for a network Cambio does not support.</p>
+        ) : !wallet.isConnected ? (
+          <button type="button" onClick={onConnectWallet} className="w-full flex items-center justify-center gap-2.5 px-6 py-4 rounded-2xl bg-[#111111] text-white dark:bg-[#FFFFFF] dark:text-[#111111] text-sm font-semibold">
+            <Wallet className="w-4 h-4" /> Connect wallet to pay
+          </button>
+        ) : wrongChain ? (
+          <div className="space-y-2">
+            <button type="button" onClick={handleSwitch} className="w-full flex items-center justify-center gap-2 px-6 py-4 rounded-2xl bg-amber-600 text-white text-sm font-semibold">
+              Switch wallet to {chain.name}
+            </button>
+            {switchError && <p className="text-xs text-center text-amber-700">{switchError}</p>}
+          </div>
+        ) : isOwn ? (
+          <p className="p-3.5 rounded-2xl bg-[#F0F0EE] dark:bg-[#1A1A1D] text-xs text-center text-[#777777]">This request pays your own connected wallet. Open it in the payer’s browser or wallet.</p>
+        ) : wallet.dataMode === 'demo' ? (
+          <p className="p-3.5 rounded-2xl bg-violet-500/10 text-xs text-center text-violet-700 dark:text-violet-300">Demo mode is on. Switch to real data in the dashboard to pay a real request.</p>
+        ) : (
+          <button
+            type="button"
+            disabled={!payable}
+            onClick={() => setPayOpen(true)}
+            className="w-full flex items-center justify-center gap-2.5 px-6 py-4 rounded-2xl bg-[#111111] text-white dark:bg-[#FFFFFF] dark:text-[#111111] text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Send className="w-4 h-4" />
+            {link.kind === 'signed' && sig !== 'valid' ? 'Waiting for signature check' : amount !== null ? `Review payment of ${formatTokenDisplay(amount, chain.tokens.MUSD.decimals)} MUSD` : 'Choose amount and pay'}
+          </button>
+        )}
+        <button type="button" onClick={onGoToDashboard} className="w-full flex items-center justify-center gap-1.5 py-2.5 text-xs text-[#777777] hover:text-[#111111] dark:hover:text-[#FFFFFF]">
+          <ArrowLeft className="w-3.5 h-3.5" /> Open Cambio dashboard
+        </button>
+      </div>
+
+      <SendModal
+        isOpen={payOpen}
+        onClose={() => setPayOpen(false)}
+        wallet={wallet}
+        onOpenConnectWallet={onConnectWallet}
+        onTransferSettled={onTransferSettled}
+        lockedRequest={lockedRequest}
+        initialRecipient={lockedRequest ? undefined : recipient ?? undefined}
+        initialAmount={lockedRequest || amount === null ? undefined : formatUnitsExact(amount, chain?.tokens.MUSD.decimals ?? 18)}
+        initialMemo={lockedRequest ? undefined : memo}
+        onRequestPaid={(hash) => setPaidHash(hash)}
+      />
+    </Shell>
+  );
+};
+
+function Shell({ children, onGoToDashboard }: { children: React.ReactNode; onGoToDashboard: () => void }) {
+  return (
+    <div className="min-h-screen bg-[#F5F5F3] dark:bg-[#0C0C0D] text-[#111111] dark:text-[#F5F5F7] flex flex-col justify-between antialiased">
+      <header className="w-full shrink-0 border-b border-[#E2E2E0] dark:border-[#26262B] bg-[#FFFFFF]/80 dark:bg-[#111113]/80 backdrop-blur-md sticky top-0 z-40">
+        <div className="max-w-4xl mx-auto px-4 sm:px-8 h-20 flex items-center justify-between">
+          <button type="button" onClick={onGoToDashboard} className="flex items-center gap-3 group" aria-label="Open Cambio dashboard">
+            <img src={logoImage} alt="" className="w-9 h-9 object-contain dark:invert" />
+            <span className="text-[16px] font-bold tracking-[0.12em] uppercase">Cambio</span>
+          </button>
           <div className="flex items-center gap-3">
             <ThemeToggle />
-            <button
-              onClick={onGoToDashboard}
-              className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-xl border border-[#E2E2E0] dark:border-[#26262B] bg-white dark:bg-[#141416] hover:bg-[#F0F0EE] dark:hover:bg-[#1E1E22] text-[#111111] dark:text-[#FFFFFF] transition-all hover:border-[#111111] dark:hover:border-[#FFFFFF]"
-            >
-              <span>Dashboard</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+            <button onClick={onGoToDashboard} className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-xl border border-[#E2E2E0] dark:border-[#26262B] bg-white dark:bg-[#141416]">
+              Dashboard <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
       </header>
-
-      {/* Main Payment Request Surface */}
       <main className="flex-1 max-w-lg w-full mx-auto px-4 py-8 sm:py-14 flex flex-col justify-center">
-        <div className="relative overflow-hidden bg-[#FFFFFF] dark:bg-[#141416] rounded-3xl border border-[#E2E2E0] dark:border-[#26262B] p-6 sm:p-9 shadow-sm space-y-6">
-          {/* Halftone Accent */}
+        <div className="relative overflow-hidden bg-[#FFFFFF] dark:bg-[#141416] rounded-3xl border border-[#E2E2E0] dark:border-[#26262B] p-6 sm:p-9 shadow-sm space-y-5">
           <div className="absolute -right-10 -top-10 w-44 h-44 pointer-events-none opacity-[0.08] dark:opacity-[0.12]">
             <HalftonePattern variant="sphere" className="w-full h-full" />
           </div>
-
-          {/* Card Kicker & Status */}
-          <div className="relative z-10 flex items-center justify-between text-xs font-sans">
-            <span className="text-xs font-semibold uppercase tracking-wider text-[#777777] dark:text-[#A0A0A0]">
-              MUSD Payment Request
-            </span>
-            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider ${
-              expired
-                ? 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20'
-                : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
-            }`}>
-              <span className={`w-1.5 h-1.5 rounded-full ${expired ? 'bg-red-500' : 'bg-emerald-500 animate-pulse'}`} />
-              {expired ? 'Expired' : 'Active'}
-            </span>
-          </div>
-
-          {/* Main Amount Section */}
-          <div className="relative z-10 text-center py-2 space-y-2">
-            <span className="text-xs sm:text-sm font-sans text-[#777777] dark:text-[#A0A0A0] block">
-              {recipientUsername ? (
-                <span>
-                  Paying to <strong className="text-[#111111] dark:text-[#FFFFFF]">@{recipientUsername}</strong>
-                </span>
-              ) : recipientAddress ? (
-                <span>
-                  Paying to <strong className="text-[#111111] dark:text-[#FFFFFF]">{shortenAddress(recipientAddress)}</strong>
-                </span>
-              ) : (
-                'Requested MUSD Payment'
-              )}
-            </span>
-
-            {isFixedAmount ? (
-              <div className="text-4xl sm:text-5xl font-bold font-mono tracking-tight text-[#111111] dark:text-[#FFFFFF]">
-                ${request.amount.toFixed(2)}{' '}
-                <span className="text-lg font-medium text-[#777777] dark:text-[#A0A0A0]">
-                  MUSD
-                </span>
-              </div>
-            ) : (
-              /* Flexible Amount Input for general QR code payments */
-              <div className="space-y-3 pt-1">
-                <div className="relative max-w-xs mx-auto">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl font-bold text-[#777777] dark:text-[#A0A0A0] font-mono">
-                    $
-                  </span>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0.01"
-                    value={enteredAmount}
-                    onChange={(e) => setEnteredAmount(e.target.value)}
-                    placeholder="0.00"
-                    className="w-full pl-9 pr-18 py-3 text-3xl font-bold font-mono text-center rounded-2xl bg-[#F0F0EE] dark:bg-[#1A1A1D] border border-[#E2E2E0] dark:border-[#26262B] focus:border-[#111111] dark:focus:border-[#FFFFFF] text-[#111111] dark:text-[#FFFFFF] outline-none transition-all tabular-nums"
-                  />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-[#777777] dark:text-[#A0A0A0] font-sans">
-                    MUSD
-                  </span>
-                </div>
-
-                {/* Preset Amount Badges */}
-                <div className="flex items-center justify-center gap-2">
-                  {['5', '10', '25', '50', '100'].map((amt) => (
-                    <button
-                      key={amt}
-                      type="button"
-                      onClick={() => setEnteredAmount(amt)}
-                      className={`px-3 py-1 rounded-xl text-xs font-semibold font-sans transition-all cursor-pointer ${
-                        enteredAmount === amt
-                          ? 'bg-[#111111] text-white dark:bg-[#FFFFFF] dark:text-[#111111]'
-                          : 'bg-[#F0F0EE] dark:bg-[#1A1A1D] text-[#777777] dark:text-[#A0A0A0] hover:text-[#111111] dark:hover:text-[#FFFFFF]'
-                      }`}
-                    >
-                      ${amt}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <p className="text-xs font-sans text-[#777777] dark:text-[#A0A0A0] pt-1">
-              Settlement on Mezo Network (ID 31612)
-            </p>
-          </div>
-
-          {/* Optional Note Card */}
-          {request.note && (
-            <div className="relative z-10 p-4 rounded-2xl bg-[#F5F5F3] dark:bg-[#1A1A1D] border border-[#E2E2E0] dark:border-[#26262B] space-y-1">
-              <span className="text-xs font-semibold uppercase tracking-wider text-[#777777] dark:text-[#A0A0A0]">
-                Note from Recipient
-              </span>
-              <p className="text-sm font-sans text-[#111111] dark:text-[#FFFFFF] leading-relaxed">
-                “{request.note}”
-              </p>
-            </div>
-          )}
-
-          {/* Recipient Details */}
-          <div className="relative z-10 p-4 rounded-2xl bg-[#F0F0EE]/70 dark:bg-[#1A1A1D]/70 border border-[#E2E2E0] dark:border-[#26262B] space-y-2">
-            <div className="flex items-center justify-between text-xs font-sans">
-              <span className="font-semibold uppercase tracking-wider text-[#777777] dark:text-[#A0A0A0]">
-                Pay To (Recipient)
-              </span>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handleCopyRecipient}
-                  className="inline-flex items-center gap-1 text-xs font-semibold text-[#777777] hover:text-[#111111] dark:text-[#A0A0A0] dark:hover:text-[#FFFFFF] transition-colors cursor-pointer"
-                >
-                  {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
-                  <span>{copied ? 'Copied' : 'Copy'}</span>
-                </button>
-                {recipientAddress && (
-                  <a
-                    href={getExplorerAddressUrl(recipientAddress)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[#777777] hover:text-[#111111] dark:text-[#A0A0A0] dark:hover:text-[#FFFFFF] transition-colors"
-                    title="View on Mezo Explorer"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
-                )}
-              </div>
-            </div>
-
-            {isResolving ? (
-              <div className="flex items-center gap-2 text-xs text-[#777777] dark:text-[#A0A0A0]">
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                <span>Resolving recipient username...</span>
-              </div>
-            ) : recipientAddress ? (
-              <div className="font-mono text-xs font-semibold text-[#111111] dark:text-[#FFFFFF] break-all select-all">
-                {recipientAddress}
-              </div>
-            ) : (
-              <div className="font-sans text-xs font-medium text-[#777777] dark:text-[#A0A0A0]">
-                @{recipientUsername}
-              </div>
-            )}
-          </div>
-
-          {/* Expiry Details */}
-          {request.expiryHours && request.expiryHours > 0 ? (
-            <div className="relative z-10 flex items-center justify-between text-xs font-sans text-[#777777] dark:text-[#A0A0A0] px-1">
-              <div className="flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5" />
-                <span>{formatExpiryRemaining(request)}</span>
-              </div>
-              <span>ID: {request.id.slice(-8)}</span>
-            </div>
-          ) : null}
-
-          {/* Primary Action Button */}
-          <div className="relative z-10 pt-2 space-y-3 font-sans">
-            {expired ? (
-              <div className="p-3.5 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-xs text-center font-medium">
-                This payment request has expired. Please ask the recipient for a new request.
-              </div>
-            ) : !wallet.isConnected ? (
-              <button
-                type="button"
-                onClick={onConnectWallet}
-                className="w-full flex items-center justify-center gap-2.5 px-6 py-4 rounded-2xl bg-[#111111] text-white dark:bg-[#FFFFFF] dark:text-[#111111] text-sm font-semibold tracking-wide shadow-sm hover:bg-[#262626] dark:hover:bg-[#EAEAEA] active:scale-[0.98] transition-all cursor-pointer"
-              >
-                <Wallet className="w-4 h-4" />
-                <span>Connect Wallet to Pay</span>
-              </button>
-            ) : isOwnRequest ? (
-              <div className="space-y-2">
-                <div className="p-3.5 rounded-2xl bg-[#F0F0EE] dark:bg-[#1A1A1D] border border-[#E2E2E0] dark:border-[#26262B] text-xs text-center text-[#777777] dark:text-[#A0A0A0]">
-                  This is your own receiving address ({shortenAddress(wallet.address)}).
-                </div>
-                <button
-                  type="button"
-                  onClick={onGoToDashboard}
-                  className="w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl border border-[#E2E2E0] dark:border-[#26262B] bg-white dark:bg-[#141416] text-xs font-semibold hover:border-[#111111] dark:hover:border-[#FFFFFF] transition-all cursor-pointer"
-                >
-                  <span>Go to Dashboard</span>
-                </button>
-              </div>
-            ) : (
-              <button
-                type="button"
-                disabled={effectiveAmount <= 0 || isResolving}
-                onClick={handlePay}
-                className="w-full flex items-center justify-center gap-2.5 px-6 py-4 rounded-2xl bg-[#111111] text-white dark:bg-[#FFFFFF] dark:text-[#111111] text-sm font-semibold tracking-wide shadow-sm hover:bg-[#262626] dark:hover:bg-[#EAEAEA] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-              >
-                <Send className="w-4 h-4" />
-                <span>
-                  {effectiveAmount > 0
-                    ? `Pay $${effectiveAmount.toFixed(2)} MUSD`
-                    : 'Enter an amount to Pay'}
-                </span>
-              </button>
-            )}
-
-            <button
-              type="button"
-              onClick={onGoToDashboard}
-              className="w-full flex items-center justify-center gap-1.5 py-2.5 text-xs font-sans text-[#777777] hover:text-[#111111] dark:text-[#A0A0A0] dark:hover:text-[#FFFFFF] transition-colors cursor-pointer"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Return to Cambio Dashboard</span>
-            </button>
-          </div>
-
-          {/* Footer Notice */}
-          <div className="pt-2 border-t border-[#E2E2E0]/60 dark:border-[#26262B]/60 text-center font-sans">
-            <span className="text-xs text-[#A0A0A0] dark:text-[#707070]">
-              Mezo Network (Chain ID 31612) · Instant MUSD Settlement
-            </span>
-          </div>
+          {children}
         </div>
       </main>
-
-      {/* Bottom Minimal Footer */}
-      <footer className="w-full py-4 text-center text-xs font-sans text-[#A0A0A0] dark:text-[#707070]">
-        Cambio MUSD Payment Protocol · Mezo Chain ID 31612
-      </footer>
+      <footer className="w-full py-4 text-center text-xs text-[#A0A0A0] dark:text-[#707070]">Cambio · non-custodial MUSD payments on Mezo</footer>
     </div>
   );
-};
+}
+
+function Banner({ tone, icon, title, children }: { tone: 'ok' | 'warn' | 'bad' | 'info'; icon: React.ReactNode; title: string; children?: React.ReactNode }) {
+  const cls = {
+    ok: 'bg-emerald-500/10 border-emerald-500/30 text-emerald-800 dark:text-emerald-300',
+    warn: 'bg-amber-500/10 border-amber-500/30 text-amber-800 dark:text-amber-300',
+    bad: 'bg-red-500/10 border-red-500/30 text-red-700 dark:text-red-300',
+    info: 'bg-[#F0F0EE] dark:bg-[#1A1A1D] border-[#E2E2E0] dark:border-[#26262B] text-[#555555] dark:text-[#A0A0A0]',
+  }[tone];
+  return (
+    <div className={`relative z-10 p-3.5 rounded-2xl border text-xs space-y-1 ${cls}`} role={tone === 'bad' ? 'alert' : 'status'}>
+      <p className="font-bold flex items-center gap-2">{icon} {title}</p>
+      {children && <p className="leading-relaxed">{children}</p>}
+    </div>
+  );
+}

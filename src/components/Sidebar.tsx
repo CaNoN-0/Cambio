@@ -12,6 +12,8 @@ import {
 } from 'lucide-react';
 import { NavItemKey, WalletState, NotificationItem } from '../types';
 import { shortenAddress } from '../utils/format';
+import { BalanceValue } from './BalanceValue';
+import { toDisplayNumber } from '../lib/amounts';
 import { HalftonePattern } from './HalftonePattern';
 import { SendPlaneIcon } from './SendPlaneIcon';
 import { ReceivePlaneIcon } from './ReceivePlaneIcon';
@@ -50,9 +52,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const { formatTokenFiat } = useCurrency();
   const unreadCount = notifications.filter((n) => !n.read).length;
 
-  const fiatEstimate = wallet.isConnected
-    ? formatTokenFiat(wallet.balanceMusd, 'MUSD', 1.0)
-    : null;
+  const musd = wallet.balances.musd;
+  const fiatEstimate = musd.status === 'ready' ? formatTokenFiat(toDisplayNumber(musd.value, musd.decimals), 'MUSD') : null;
 
   const navItems: { key: NavItemKey; label: string; icon: React.ReactNode }[] = [
     { key: 'overview', label: 'Overview', icon: <LayoutDashboard className="w-4 h-4" /> },
@@ -172,15 +173,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <span
               className={`w-2 h-2 rounded-full border border-black/10 dark:border-white/10 ${
                 wallet.isConnected
-                  ? wallet.isMezoNetwork
-                    ? 'bg-[#111111] dark:bg-[#FFFFFF]'
-                    : 'bg-[#777777]'
+                  ? wallet.isSupportedNetwork
+                    ? 'bg-emerald-500'
+                    : 'bg-amber-500'
                   : 'bg-[#A0A0A0]'
               }`}
               aria-hidden="true"
             />
             <span className="font-semibold text-[#111111] dark:text-[#F5F5F7] tracking-tight truncate max-w-[120px]">
-              {wallet.isConnected ? wallet.networkName || 'Mezo Network' : 'Mezo Network'}
+              {wallet.isConnected ? (wallet.isSupportedNetwork ? wallet.networkName : 'Unsupported network') : 'Not connected'}
             </span>
           </div>
           <HalftonePattern variant="fade-right" className="absolute right-0 top-0 h-full w-28 opacity-15 dark:opacity-20" />
@@ -202,12 +203,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
             <div className="flex items-center justify-between text-xs sm:text-sm pt-1.5 border-t border-[#E2E2E0]/80 dark:border-[#26262B]">
               <span className="text-xs font-sans font-medium uppercase tracking-wider text-[#777777] dark:text-[#A0A0A0]">
-                {wallet.isDemoBalance ? 'Demo MUSD' : 'Balance'}
+                {wallet.dataMode === 'demo' ? 'Demo MUSD' : 'MUSD'}
               </span>
               <div className="text-right">
-                <span className="font-semibold font-mono text-sm text-[#111111] dark:text-[#F5F5F7] tabular-nums block">
-                  {wallet.balanceMusd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MUSD
-                </span>
+                <BalanceValue balance={musd} compact className="font-semibold font-mono text-sm text-[#111111] dark:text-[#F5F5F7] tabular-nums block" />
                 {fiatEstimate && (
                   <span className="text-[10px] font-mono text-[#777777] dark:text-[#A0A0A0] tabular-nums block">
                     ≈ {fiatEstimate.formatted}
@@ -232,7 +231,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         )}
 
         <div className="text-xs font-sans uppercase tracking-wider text-center text-[#A0A0A0] dark:text-[#707070] pt-0.5">
-          Mezo · WalletConnect
+          Non-custodial · Mezo
         </div>
       </div>
     </aside>

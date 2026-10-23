@@ -16,6 +16,8 @@ import { shortenAddress, getExplorerAddressUrl } from '../utils/format';
 import { ThemeToggle } from './ThemeToggle';
 import { HalftonePattern } from './HalftonePattern';
 import { useCurrency } from '../context/CurrencyContext';
+import { BalanceValue } from './BalanceValue';
+import { toDisplayNumber } from '../lib/amounts';
 
 interface TopBarProps {
   activeView: NavItemKey;
@@ -57,9 +59,8 @@ export const TopBar: React.FC<TopBarProps> = ({
   const [copied, setCopied] = useState(false);
   const [copiedUsername, setCopiedUsername] = useState(false);
 
-  const fiatEstimate = wallet.isConnected
-    ? formatTokenFiat(wallet.balanceMusd, 'MUSD', 1.0)
-    : null;
+  const musd = wallet.balances.musd;
+  const fiatEstimate = musd.status === 'ready' ? formatTokenFiat(toDisplayNumber(musd.value, musd.decimals), 'MUSD') : null;
 
   const handleCopyUsername = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -120,9 +121,9 @@ export const TopBar: React.FC<TopBarProps> = ({
             className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl border border-[#E2E2E0] dark:border-[#26262B] bg-white dark:bg-[#141416] hover:bg-[#F0F0EE] dark:hover:bg-[#1C1C1F] text-xs font-medium text-[#111111] dark:text-[#F5F5F7] transition-all duration-150"
             title="Click to switch network"
           >
-            <span className="w-1.5 h-1.5 rounded-full bg-[#111111] dark:bg-[#FFFFFF]" />
+            <span className={`w-1.5 h-1.5 rounded-full ${wallet.isSupportedNetwork ? 'bg-emerald-500' : 'bg-amber-500'}`} />
             <span className="font-mono text-[11px] uppercase tracking-wider">
-              {wallet.networkName || 'MEZO'}
+              {wallet.isSupportedNetwork ? wallet.networkName : `Unsupported network${wallet.chainId ? ` (${wallet.chainId})` : ''}`}
             </span>
           </button>
         )}
@@ -269,7 +270,7 @@ export const TopBar: React.FC<TopBarProps> = ({
                       </button>
 
                       <a
-                        href={getExplorerAddressUrl(wallet.address, wallet.chainId)}
+                        href={getExplorerAddressUrl(wallet.address, wallet.chainId) ?? undefined}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="group flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white dark:bg-[#141416] border border-[#E2E2E0] dark:border-[#26262B] hover:border-[#111111] dark:hover:border-[#FFFFFF] text-[11px] font-mono text-[#777777] dark:text-[#A0A0A0] hover:text-[#111111] dark:hover:text-[#FFFFFF] transition-all"
@@ -300,12 +301,10 @@ export const TopBar: React.FC<TopBarProps> = ({
 
                   <div className="flex items-center justify-between pt-1">
                     <span className="text-[10px] font-mono uppercase tracking-wider text-[#777777] dark:text-[#A0A0A0]">
-                      {wallet.isDemoBalance ? 'Demo MUSD Balance' : 'MUSD Balance'}
+                      {wallet.dataMode === 'demo' ? 'Demo MUSD (simulated)' : 'MUSD Balance'}
                     </span>
                     <div className="text-right">
-                      <span className="font-mono font-semibold text-[#111111] dark:text-[#FFFFFF] tabular-nums block">
-                        {wallet.balanceMusd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MUSD
-                      </span>
+                      <BalanceValue balance={musd} compact className="font-mono font-semibold text-[#111111] dark:text-[#FFFFFF] tabular-nums block" />
                       {fiatEstimate && (
                         <span className="font-mono text-[10px] text-[#777777] dark:text-[#A0A0A0] tabular-nums block">
                           ≈ {fiatEstimate.formatted}
