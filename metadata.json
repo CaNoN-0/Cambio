@@ -1,6 +1,8 @@
 {
   "name": "Cambio",
-  "description": "A monochrome editorial financial interface for MUSD settlement, payments, and transfers on the Mezo network.",
+  "description": "Non-custodial MUSD payments on Mezo: send, request and receive MUSD with verified @usernames and signed payment links.",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }

@@ -1,81 +1,48 @@
-import { Transaction, NotificationItem, WalletState } from '../types';
+/**
+ * Demo-mode fixtures. Everything here is fictional and typed as simulated:
+ * mode 'demo', status 'simulated', no transaction hash. It can never be merged into real history,
+ * because real history only accepts chain-derived items (see lib/activity.ts).
+ */
+import type { NotificationItem } from '../types';
+import type { ActivityItem } from '../lib/activity';
 
-export const INITIAL_WALLET_STATE: WalletState = {
-  isConnected: false,
-  status: 'disconnected',
-  address: null,
-  walletName: null,
+export const DEMO_MUSD_BALANCE = 12_450n * 10n ** 18n;
+export const DEMO_BTC_BALANCE = 45n * 10n ** 16n; // 0.45 BTC
+
+const day = 24 * 60 * 60 * 1000;
+const demo = (n: number, kind: ActivityItem['kind'], musd: number, name: string, note: string, ago: number): ActivityItem => ({
+  key: `demo-${n}`,
+  mode: 'demo',
+  kind,
+  status: 'simulated',
+  amount: BigInt(Math.round(musd * 100)) * 10n ** 16n,
+  decimals: 18,
+  symbol: 'MUSD',
+  counterparty: null,
+  counterpartyName: `${name} (demo)`,
+  hash: null,
   chainId: null,
-  networkName: null,
-  isMezoNetwork: false,
-  balanceMusd: 0,
-  isDemoBalance: true,
-};
+  timestamp: Date.now() - ago,
+  memo: note,
+  source: 'demo',
+});
 
-export const DEMO_CONNECTED_BALANCE = 12450.00;
-
-export const SAMPLE_TRANSACTIONS: Transaction[] = [
-  {
-    id: 'tx-demo-001',
-    type: 'receive',
-    amount: 1250.00,
-    currency: 'MUSD',
-    counterparty: 'Elena Rostova',
-    counterpartyAddress: '0x32A4…8B11',
-    timestamp: 'Today, 2:45 PM',
-    status: 'completed',
-    note: 'Consulting invoice #1042',
-    txHash: '0x8f2a…4c19',
-    isDemo: true,
-  },
-  {
-    id: 'tx-demo-002',
-    type: 'send',
-    amount: 320.00,
-    currency: 'MUSD',
-    counterparty: 'Marcus Vance',
-    counterpartyAddress: '0x99F1…22C8',
-    timestamp: 'Yesterday, 11:15 AM',
-    status: 'completed',
-    note: 'Team lunch split',
-    txHash: '0x1b4e…92df',
-    isDemo: true,
-  },
-  {
-    id: 'tx-demo-003',
-    type: 'receive',
-    amount: 4500.00,
-    currency: 'MUSD',
-    counterparty: 'Aura Design Studio',
-    counterpartyAddress: '0x44D9…77E0',
-    timestamp: 'Oct 14, 2026',
-    status: 'completed',
-    note: 'Design sprint milestone',
-    txHash: '0x77c2…519a',
-    isDemo: true,
-  },
-  {
-    id: 'tx-demo-004',
-    type: 'send',
-    amount: 85.50,
-    currency: 'MUSD',
-    counterparty: 'Cloud Hosting Node',
-    counterpartyAddress: '0x66B0…13A2',
-    timestamp: 'Oct 12, 2026',
-    status: 'completed',
-    note: 'Infrastructure subscription',
-    txHash: '0x33e5…81bf',
-    isDemo: true,
-  },
-];
+export function createDemoActivity(): ActivityItem[] {
+  return [
+    demo(1, 'receive', 1250, 'Elena', 'Consulting invoice', 2 * 60 * 60 * 1000),
+    demo(2, 'send', 320, 'Marcus', 'Team lunch split', day),
+    demo(3, 'receive', 4500, 'Design studio', 'Milestone payment', 8 * day),
+    demo(4, 'send', 85.5, 'Hosting provider', 'Subscription', 10 * day),
+  ];
+}
 
 export const INITIAL_NOTIFICATIONS: NotificationItem[] = [
   {
-    id: 'notif-1',
-    title: 'WalletConnect Ready',
-    message: 'Connect your real crypto wallet via QR code or browser extension to test Cambio.',
+    id: 'notif-welcome',
+    title: 'Welcome to Cambio',
+    message: 'Connect a wallet on Mezo Testnet to send, request and receive MUSD. Every transfer is approved in your own wallet.',
     timestamp: 'Just now',
     read: false,
-    type: 'wallet',
+    type: 'system',
   },
 ];

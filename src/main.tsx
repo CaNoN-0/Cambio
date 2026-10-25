@@ -6,11 +6,6 @@ import { ThemeProvider } from './context/ThemeContext';
 import { CurrencyProvider } from './context/CurrencyContext';
 import App from './App.tsx';
 import './index.css';
-import { testFirestoreConnection } from './firebase';
-
-// Verify Firestore connectivity on app boot
-testFirestoreConnection();
-
 createRoot(document.getElementById('root')!).render(
   <WagmiProvider config={wagmiAdapter.wagmiConfig}>
     <QueryClientProvider client={queryClient}>

@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { WalletState } from '../types';
 import { getExplorerAddressUrl, shortenAddress } from '../utils/format';
+import { MEZO_MAINNET, MEZO_TESTNET, explorerTokenUrl, getEnabledChains } from '../config/chains';
 import { useTheme, ThemePreference } from '../context/ThemeContext';
 import { useCurrency } from '../context/CurrencyContext';
 import { HalftonePattern } from './HalftonePattern';
@@ -378,7 +379,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               </div>
               <div className="pt-1 flex items-center gap-2">
                 <a
-                  href={getExplorerAddressUrl(wallet.address, wallet.chainId)}
+                  href={getExplorerAddressUrl(wallet.address, wallet.chainId) ?? undefined}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 text-[11px] text-[#111111] dark:text-[#FFFFFF] hover:underline"
@@ -440,20 +441,28 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-mono">
-          <div className="p-3.5 rounded-2xl bg-[#F0F0EE] dark:bg-[#1A1A1D] border border-[#E2E2E0] dark:border-[#26262B]">
-            <span className="text-[10px] uppercase tracking-wider text-[#777777] dark:text-[#A0A0A0] block">Mezo Mainnet ID</span>
-            <span className="font-bold text-[#111111] dark:text-[#FFFFFF] mt-0.5 block">
-              31612 (0x7B7C)
-            </span>
-          </div>
-
-          <div className="p-3.5 rounded-2xl bg-[#F0F0EE] dark:bg-[#1A1A1D] border border-[#E2E2E0] dark:border-[#26262B]">
-            <span className="text-[10px] uppercase tracking-wider text-[#777777] dark:text-[#A0A0A0] block">Mezo Matsnet Testnet</span>
-            <span className="font-bold text-[#111111] dark:text-[#FFFFFF] mt-0.5 block">
-              31611 (0x7B7B)
-            </span>
-          </div>
+          {[MEZO_TESTNET, MEZO_MAINNET].map((c) => {
+            const enabled = getEnabledChains().some((e) => e.chainId === c.chainId);
+            return (
+              <div key={c.chainId} className="p-3.5 rounded-2xl bg-[#F0F0EE] dark:bg-[#1A1A1D] border border-[#E2E2E0] dark:border-[#26262B] space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase tracking-wider text-[#777777] dark:text-[#A0A0A0]">{c.name}</span>
+                  <span className={`text-[10px] uppercase ${enabled ? 'text-emerald-600 dark:text-emerald-400' : 'text-[#777777]'}`}>{enabled ? 'Enabled' : 'Disabled in this build'}</span>
+                </div>
+                <span className="font-bold text-[#111111] dark:text-[#FFFFFF] block">
+                  Chain {c.chainId} (0x{c.chainId.toString(16).toUpperCase()})
+                </span>
+                <span className="block text-[11px] text-[#555555] dark:text-[#A0A0A0] break-all">RPC: {c.rpcUrls[0]}</span>
+                <a href={explorerTokenUrl(c, c.tokens.MUSD.address)} target="_blank" rel="noopener noreferrer" className="block text-[11px] text-[#111111] dark:text-[#FFFFFF] hover:underline break-all">
+                  MUSD: {c.tokens.MUSD.address}
+                </a>
+              </div>
+            );
+          })}
         </div>
+        <p className="text-[11px] text-[#777777] dark:text-[#A0A0A0]">
+          Addresses verified against the official Mezo documentation and on-chain (token symbol and decimals). Native BTC pays network fees; MUSD is an ERC-20 token.
+        </p>
       </div>
 
       {/* Privacy Preferences */}
@@ -511,6 +520,34 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       </div>
 
 
+
+      {/* Demo mode */}
+      <div className="bg-[#FFFFFF] dark:bg-[#141416] rounded-3xl border border-[#E2E2E0] dark:border-[#26262B] p-6 sm:p-8 shadow-xs space-y-4">
+        <div>
+          <div className="text-[10px] font-mono uppercase tracking-widest text-[#777777] dark:text-[#A0A0A0]">Data source</div>
+          <h2 className="text-base sm:text-lg font-bold text-[#111111] dark:text-[#FFFFFF] tracking-tight mt-0.5">Demo mode</h2>
+          <p className="text-xs text-[#777777] dark:text-[#A0A0A0] mt-0.5 max-w-xl">
+            Demo mode replaces your balances and history with simulated data so you can explore Cambio without a funded wallet.
+            Nothing in demo mode is sent on-chain, and simulated records never appear in real history.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            role="switch"
+            aria-checked={dataMode === 'demo'}
+            onClick={onToggleDataMode}
+            className={`px-4 py-2 rounded-xl text-xs font-semibold border ${dataMode === 'demo' ? 'bg-violet-600 text-white border-violet-600' : 'bg-[#F0F0EE] dark:bg-[#1A1A1D] text-[#111111] dark:text-[#FFFFFF] border-[#E2E2E0] dark:border-[#26262B]'}`}
+          >
+            {dataMode === 'demo' ? 'Demo mode on — switch to real data' : 'Turn on demo mode'}
+          </button>
+          {dataMode === 'demo' && (
+            <button type="button" onClick={onResetSimulation} className="px-4 py-2 rounded-xl text-xs font-semibold border border-[#E2E2E0] dark:border-[#26262B]">
+              Reset demo data
+            </button>
+          )}
+        </div>
+      </div>
 
       <CurrencyModal
         isOpen={isCurrencyModalOpen}

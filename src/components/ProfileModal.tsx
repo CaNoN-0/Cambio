@@ -212,7 +212,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
             </button>
 
             <a
-              href={getExplorerAddressUrl(wallet.address, wallet.chainId)}
+              href={getExplorerAddressUrl(wallet.address, wallet.chainId) ?? undefined}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-white dark:bg-[#141416] border border-[#E2E2E0] dark:border-[#26262B] hover:border-[#111111] dark:hover:border-[#FFFFFF] text-xs font-mono font-medium text-[#111111] dark:text-[#FFFFFF] transition-all shadow-xs"

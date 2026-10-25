@@ -4,9 +4,6 @@
  */
 
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
-import { useAccount } from 'wagmi';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { db } from '../firebase';
 import { FiatCurrencyCode, SupportedCurrency } from '../types';
 import {
   SUPPORTED_CURRENCIES,
@@ -18,7 +15,7 @@ import {
   getStoredPreferredCurrency,
   setStoredPreferredCurrency,
 } from '../services/fxRatesService';
-import { getCurrentLiveRates } from '../services/liveRatesService';
+import { getUsdPrice, refreshBtcUsd } from '../services/liveRatesService';
 
 export type RateStatus = 'loading' | 'live' | 'stale' | 'error';
 
@@ -46,8 +43,6 @@ interface CurrencyContextType {
 const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined);
 
 export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { address: connectedAddress, isConnected } = useAccount();
-
   // Selected fiat currency state
   const [preferredCurrency, setPreferredCurrencyState] = useState<FiatCurrencyCode>(() => {
     return getStoredPreferredCurrency();
@@ -125,78 +120,22 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     };
   }, [loadRates, lastUpdated]);
 
-  // Sync preference with Firestore when user connects wallet
+  // The preferred currency is a per-device display preference, stored only in this browser.
+  // (It was previously written to Firestore under any wallet address without authentication.)
+  const setCurrency = useCallback((newCurrency: FiatCurrencyCode) => {
+    if (!(newCurrency in CURRENCY_MAP)) return;
+    setPreferredCurrencyState(newCurrency);
+    setStoredPreferredCurrency(newCurrency);
+  }, []);
+
+  // BTC/USD reference price for display estimates; refreshed with FX rates.
+  const [, setPriceTick] = useState(0);
   useEffect(() => {
-    if (!isConnected || !connectedAddress) return;
-
-    let isSubscribed = true;
-    const syncFirestorePreference = async () => {
-      try {
-        const canonicalAddr = connectedAddress.toLowerCase();
-        const prefRef = doc(db, 'user_preferences', canonicalAddr);
-        const snapshot = await getDoc(prefRef);
-
-        if (snapshot.exists()) {
-          const data = snapshot.data();
-          if (data && data.preferredCurrency && data.preferredCurrency in CURRENCY_MAP) {
-            if (isSubscribed) {
-              const remoteCurrency = data.preferredCurrency as FiatCurrencyCode;
-              setPreferredCurrencyState(remoteCurrency);
-              setStoredPreferredCurrency(remoteCurrency);
-            }
-          }
-        } else {
-          // Store current preference into Firestore for new device synchronization
-          const currentPref = getStoredPreferredCurrency();
-          await setDoc(
-            prefRef,
-            {
-              walletAddress: canonicalAddr,
-              preferredCurrency: currentPref,
-              updatedAt: Date.now(),
-            },
-            { merge: true }
-          );
-        }
-      } catch (err) {
-        // Network or rule permissions fallback gracefully to local persistence
-        console.warn('Firestore preference sync unavailable, using local persistence:', err);
-      }
-    };
-
-    syncFirestorePreference();
-
-    return () => {
-      isSubscribed = false;
-    };
-  }, [isConnected, connectedAddress]);
-
-  // Update preferred currency selection
-  const setCurrency = useCallback(
-    (newCurrency: FiatCurrencyCode) => {
-      if (!(newCurrency in CURRENCY_MAP)) return;
-      setPreferredCurrencyState(newCurrency);
-      setStoredPreferredCurrency(newCurrency);
-
-      // Async sync to Firestore if wallet is active
-      if (isConnected && connectedAddress) {
-        const canonicalAddr = connectedAddress.toLowerCase();
-        const prefRef = doc(db, 'user_preferences', canonicalAddr);
-        setDoc(
-          prefRef,
-          {
-            walletAddress: canonicalAddr,
-            preferredCurrency: newCurrency,
-            updatedAt: Date.now(),
-          },
-          { merge: true }
-        ).catch((err) => {
-          console.warn('Failed to sync preferred currency to Firestore:', err);
-        });
-      }
-    },
-    [isConnected, connectedAddress]
-  );
+    const load = () => refreshBtcUsd().catch(() => undefined).finally(() => isMounted.current && setPriceTick((t) => t + 1));
+    load();
+    const i = setInterval(() => document.visibilityState === 'visible' && load(), 60_000);
+    return () => clearInterval(i);
+  }, []);
 
   // Manual refresh handler
   const refreshRates = useCallback(async () => {
@@ -211,20 +150,8 @@ export const CurrencyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     [preferredCurrency]
   );
 
-  // Lookup verified USD token price from live rates service
-  const getTokenUsdPrice = useCallback((tokenSymbol: string): number | undefined => {
-    const symbolUpper = tokenSymbol.toUpperCase();
-    if (symbolUpper === 'MUSD' || symbolUpper === 'USDC') {
-      return 1.0;
-    }
-    const liveRates = getCurrentLiveRates();
-    if (liveRates && liveRates[symbolUpper]) {
-      return liveRates[symbolUpper].priceUsd;
-    }
-    if (symbolUpper === 'BTC') return 82850.0;
-    if (symbolUpper === 'TBTC') return 82810.0;
-    return undefined;
-  }, []);
+  // USD price for display only. Undefined (shown as "price unavailable") when no real price is known.
+  const getTokenUsdPrice = useCallback((tokenSymbol: string): number | undefined => getUsdPrice(tokenSymbol)?.priceUsd, []);
 
   // Format token to fiat estimate
   const formatTokenFiat = useCallback(

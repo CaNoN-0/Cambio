@@ -29,7 +29,11 @@ export const FirstTimeNotice: React.FC<FirstTimeNoticeProps> = ({ onConnectWalle
               Connect your wallet to start transfers
             </h2>
             <p className="text-sm text-[#777777] dark:text-[#A0A0A0] mt-0.5 leading-relaxed font-sans">
-              Scan from any mobile wallet or use your browser extension to send and receive MUSD on Mezo.
+              Scan from any mobile wallet or use your browser extension. This build runs on Mezo Testnet, so you can try every flow with free test funds from the{' '}
+              <a href="https://faucet.test.mezo.org" target="_blank" rel="noopener noreferrer" className="underline font-semibold">
+                Mezo faucet
+              </a>
+              . No wallet yet? Turn on demo mode in Settings to explore with simulated data.
             </p>
           </div>
         </div>

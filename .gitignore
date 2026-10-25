@@ -6,3 +6,9 @@ coverage/
 *.log
 .env*
 !.env.example
+# Build output and test artefacts
+server.js
+test-results/
+playwright-report/
+firestore-debug.log
+*-debug.log
