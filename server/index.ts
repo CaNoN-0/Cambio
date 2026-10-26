@@ -22,7 +22,8 @@ process.on('unhandledRejection', (reason) => {
 async function main() {
   const publicOrigin = parsePublicOrigin(process.env.APP_URL);
   const trustProxy = parseTrustProxy(process.env.TRUST_PROXY);
-  const { identity, error, rateLimitStore } = await bootstrapIdentity(process.env, 'production');
+  const { identity, error, rateLimitStore, close } = await bootstrapIdentity(process.env, 'production');
+  if (process.env.IDENTITY_STORE === 'sqlite' && !identity) throw new Error(error || 'SQLite identity is required for self-hosted startup.');
   const api = createApiApp({
     identity,
     identityInitError: error,
@@ -53,8 +54,12 @@ async function main() {
   });
 
   const port = Number(process.env.PORT) || 3000;
-  app.listen(port, () => {
+  const server = app.listen(port, process.env.BIND_HOST || '0.0.0.0', () => {
     console.log(`[server] Cambio listening on :${port} (identity: ${identity ? identity.storeInfo.kind : `unavailable — ${error}`})`);
+  });
+  for (const signal of ['SIGTERM', 'SIGINT'] as const) process.once(signal, () => {
+    server.close(() => { close?.(); process.exit(0); });
+    setTimeout(() => process.exit(1), 10_000).unref();
   });
 }
 

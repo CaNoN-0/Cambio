@@ -1,5 +1,15 @@
 # Executed command record
 
+## Self-hosting follow-up — 2026-10-26
+
+The user selected hosting both the app and database and stated that no server/domain is available yet. `git status`, `git diff`, `git diff --check`, `rg` and source/config reads established the implementation boundaries. `Get-Command docker` found no CLI; `wsl --list --quiet` reported WSL not installed. No Docker execution is claimed.
+
+Commands run included `npm run typecheck`, `npm run lint`, `npm test -- --reporter=dot`, `npm test -- --maxWorkers=2 --reporter=dot`, `npm run test:rules` with task-local Java 21, `npm run verify:chain`, `npm run build` with `VITE_ENABLE_MAINNET=false`, and production `npm run test:e2e` with `E2E_IDENTITY_STORE=sqlite`, first with normal workers and then `--workers=1`. Intermediate RPC-related failures are preserved; final results are in `SELF_HOSTING_READINESS.md` and `audit-evidence/selfhost-*`.
+
+Read-only Node HTTP scripts validated `compose.yaml` against the official Compose JSON Schema and retrieved official Node/Caddy image manifests (digests only were saved). These do not replace container execution. The local `@vercel/node` builder also compiled/imported the API as a backward-compatibility check.
+
+`node --env-file=.env.selfhost.local server.js` started the loopback-only local SQLite instance on port 3100 using an ignored local config and database. HTTP probes observed healthy durable identity, SPA direct navigation and JSON API 404 behavior. Disposable production subprocess/worker tests verified real signed claims, restart persistence, nonce rejection, transaction rollback, cross-worker uniqueness/limits and consistent backups. No wallet transaction, hosting purchase, DNS change or remote self-hosted deployment occurred.
+
 ## Vercel remediation follow-up — 2026-10-26
 
 The user authorized backend deployment after reporting the unavailable registry on https://cambio-rho.vercel.app. Read-only HTTP requests observed `/` 200, `/api/health` 404, username availability 404 and `/app/activity` 404. `git status`, `git diff --check`, GitHub commit statuses and deployment status GETs inspected the current source and the existing Git-triggered Vercel integration. `vercel --version` reported 59.23.2; `vercel whoami` reported an expired saved login. The subsequently connected Vercel integration returned no accessible projects/teams and a 403 for the owning team; its prescribed team-authorization recovery returned 404 team not found. No credentials were obtained or permissions changed.

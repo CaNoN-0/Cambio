@@ -1,10 +1,16 @@
 import { existsSync } from 'node:fs';
+import { randomUUID } from 'node:crypto';
+import path from 'node:path';
 import { defineConfig, devices } from '@playwright/test';
 
 // Use a pre-installed Chromium when one is provided (e.g. PW_CHROMIUM_PATH or /opt/pw-browsers/chromium);
 // otherwise Playwright's own browser from `npx playwright install chromium`.
 const executablePath = process.env.PW_CHROMIUM_PATH || (existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
 const PORT = Number(process.env.E2E_PORT || 4173);
+const identityStore = process.env.E2E_IDENTITY_STORE || 'memory';
+if (!['memory', 'sqlite'].includes(identityStore)) throw new Error('E2E_IDENTITY_STORE must be memory or sqlite.');
+// Every SQLite browser run gets a disposable file; never point tests at production registry data.
+const identityDatabase = path.resolve('node_modules/.cache', `cambio-e2e-${randomUUID()}.sqlite`);
 
 export default defineConfig({
   testDir: 'tests/e2e',
@@ -27,7 +33,7 @@ export default defineConfig({
     command: 'npm run build && node server.js',
     url: `http://localhost:${PORT}/api/health`,
     timeout: 180_000,
-    reuseExistingServer: !process.env.CI,
-    env: { PORT: String(PORT), NODE_ENV: 'production', IDENTITY_STORE: 'memory', ALLOW_NON_DURABLE_IDENTITY: 'true' },
+    reuseExistingServer: !process.env.CI && identityStore === 'memory',
+    env: { PORT: String(PORT), NODE_ENV: 'production', IDENTITY_STORE: identityStore, IDENTITY_DATABASE_PATH: identityDatabase, ALLOW_NON_DURABLE_IDENTITY: identityStore === 'memory' ? 'true' : 'false' },
   },
 });

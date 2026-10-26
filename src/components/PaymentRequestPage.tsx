@@ -4,7 +4,8 @@ import type { Address, Hex } from 'viem';
 import { useSwitchChain } from 'wagmi';
 import type { WalletState } from '../types';
 import { copyToClipboard, getExplorerAddressUrl, getExplorerTxUrl, shortenAddress } from '../utils/format';
-import { formatTimeRemaining, isExpired, verifyRequestSignature, encodePaymentLink, type ParsedPaymentLink } from '../lib/paymentRequest';
+import { formatTimeRemaining, isExpired, verifyRequestSignature, ecdsaTypedDataVerifier, encodePaymentLink, type ParsedPaymentLink } from '../lib/paymentRequest';
+import { verifyWalletSignature } from '../../shared/signatureVerification';
 import { formatTokenDisplay, formatUnitsExact } from '../lib/amounts';
 import { getChainConfig } from '../config/chains';
 import { lookupAddress, resolveUsername } from '../services/identityClient';
@@ -52,7 +53,12 @@ export const PaymentRequestPage: React.FC<PaymentRequestPageProps> = ({ link, wa
     if (link.kind !== 'signed' || !chain) return;
     let cancelled = false;
     setSig('verifying');
-    verifyRequestSignature(link.request, link.signature, (args) => publicClientFor(chain.chainId).verifyTypedData(args))
+    verifyRequestSignature(link.request, link.signature, (args) => verifyWalletSignature({
+      signature: args.signature,
+      verifyEoa: () => ecdsaTypedDataVerifier(args),
+      getCode: () => publicClientFor(chain.chainId).getCode({ address: args.address }),
+      verifyContract: () => publicClientFor(chain.chainId).verifyTypedData(args),
+    }))
       .then((ok) => !cancelled && setSig(ok ? 'valid' : 'invalid'))
       .catch(() => !cancelled && setSig('invalid'));
     return () => {

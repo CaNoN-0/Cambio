@@ -1,0 +1,2 @@
+Using TypeScript 5.9.3 (local user-provided)
+{"builder":"@vercel/node","compiledEntry":"api/index.js","fileCount":33,"healthStatus":503,"identity":{"available":false,"durable":false,"store":null,"error":"IDENTITY_STORE=memory is not allowed in production (set ALLOW_NON_DURABLE_IDENTITY=true to override)."}}

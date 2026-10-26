@@ -15,6 +15,8 @@ Cambio is for people and small businesses who want to get paid in MUSD (Mezo's b
 
 > **Status:** hackathon MVP on **Mezo Testnet**. Not audited. Do not use with significant real funds. See [Residual risks](#residual-risks).
 
+To run the app and username database on your own server without Firebase/Vercel, see [SELF_HOSTING.md](SELF_HOSTING.md). Current local results and the remaining public-hosting checks are recorded in [SELF_HOSTING_READINESS.md](SELF_HOSTING_READINESS.md).
+
 ---
 
 ## What is real, what is simulated
@@ -24,7 +26,7 @@ Cambio is for people and small businesses who want to get paid in MUSD (Mezo's b
 | Native BTC and MUSD balances, read separately | **Real** (`eth_getBalance` + `MUSD.balanceOf`) | `tests/balances.test.ts`, e2e "connecting reads real Mezo Testnet balances" |
 | MUSD transfer (wallet-signed `transfer`) | **Real**, receipt-verified | `tests/musdTransfer.test.ts`; e2e runs the live preflight up to the wallet prompt |
 | Signed payment requests + settlement proof | **Real** (EIP-712 + calldata-bound request id) | `tests/paymentRequest.test.ts`, e2e tamper/expiry tests |
-| `@username` registry | **Real**, server-verified EIP-4361 signatures, atomic Firestore transactions | `tests/identity.api.test.ts`, `tests/rules/*` (Firestore emulator) |
+| `@username` registry | **Real**, server-verified EIP-4361 signatures, atomic Firestore or self-hosted SQLite transactions | `tests/identity.api.test.ts`, `tests/sqlite-identity.test.ts`, `tests/rules/*` (Firestore emulator) |
 | Activity history | **Real**: Mezo Blockscout index, RPC-log fallback, plus this device's submitted transactions reconciled against receipts | `tests/activity-ledger.test.ts` |
 | Swaps (MUSD⇄BTC, MUSD⇄mUSDC, MUSD⇄mUSDT) | **Real** via Mezo's official Router; quotes from `getAmountsOut`, fees from `PoolFactory.getFee` | `tests/swap.test.ts`; e2e shows a live router quote |
 | Demo mode | **Simulated**, clearly labelled on every screen; never mixed into real history; swaps are not simulated at all | `tests/activity-ledger.test.ts`, `tests/balances.test.ts` |
@@ -44,13 +46,13 @@ Browser (React 19 + Vite)                                   Server (Express, sam
 │                                              │            │   nonce, 5-min expiry, stored    │
 │ lib/musdTransfer   preflight→sign→receipt    │            │ /api/identity/claim              │
 │ lib/swap           router quote→approve→swap │            │   verify signature (EOA/1271),   │
-│ lib/paymentRequest EIP-712 links, settlement │            │   atomic commit (Firestore txn)  │
+│ lib/paymentRequest EIP-712 links, settlement │            │   atomic registry transaction   │
 │ lib/activity       Blockscout ▸ RPC logs     │◄── fetch ──┤ /api/identity/username|address   │
 │ services/identityClient ─────────────────────┼──── /api ─►│ rate limits, 4 KB bodies, no CORS│
 └──────────────────────────────────────────────┘            └───────────────┬──────────────────┘
-                                                                            │ Admin SDK
-                                                                  Cloud Firestore (rules deny all
-                                                                  client writes; public get only)
+                                                                            │ Store adapter
+                                                                  Firestore via Admin SDK, or
+                                                                  SQLite on a self-hosted disk
 ```
 
 Key modules:
@@ -64,8 +66,9 @@ Key modules:
 | `src/lib/transactions.ts` | `TxPhase` lifecycle, local ledger of submitted hashes, receipt reconciliation |
 | `src/lib/paymentRequest.ts` | Link format, EIP-712 types, validation, signature and settlement verification |
 | `src/lib/swap.ts` | Router quotes, price impact, slippage, approval/re-quote/simulate/execute |
-| `server/identity/*` | SIWE challenge/claim service, Firestore and in-memory stores, shared decision logic |
+| `server/identity/*` | SIWE challenge/claim service, Firestore/SQLite/development-memory stores, shared decision logic |
 | `shared/username.ts` | Username normalisation, validation and impersonation blocklist (client + server) |
+| `shared/signatureVerification.ts` | Local ECDSA verification with on-chain contract-wallet fallback; no simulated ownership |
 | `firestore.rules` | Deny-by-default rules, tested against the emulator |
 
 ---
@@ -165,7 +168,9 @@ If the registry is unavailable the API answers **503** and the UI says so; sendi
 
 ## Deployment
 
-The app deploys as one Node service (Cloud Run via AI Studio, or any Node host):
+The app deploys as one Node service (Cloud Run via AI Studio, or any Node host). To host the app **and its database yourself without Firebase or Vercel**, use [SELF_HOSTING.md](SELF_HOSTING.md): Node 24, SQLite on persistent local disk, Docker Compose and Caddy HTTPS. This is a single-server configuration; the verified username rules and signature checks are the same for both stores.
+
+For the managed Firestore configuration:
 
 ```bash
 npm ci && npm run build      # dist/ + server.js
@@ -214,7 +219,7 @@ About 5 minutes, two browsers (or a browser + a phone wallet):
 - Single-hop swaps on the three verified MUSD pools only; no multi-hop routing or CL (Slipstream) pools.
 - History comes from the Mezo explorer index (latest 50 MUSD transfers) with an RPC fallback over up to the latest 10,000 blocks. Non-MUSD swap legs appear from this device's ledger only.
 - Private transfer notes and the request list are stored in the browser that created them.
-- Firestore identity uses shared atomic rate limiting. Set the correct `TRUST_PROXY` hop count (0 for direct Node; 1 only behind one trusted proxy) and enable a Firestore TTL policy on `identity_rate_limits.expiresAt` to clean up old IP buckets. Local memory mode limits remain per instance.
+- Firestore and SQLite identity use shared atomic rate limiting. SQLite instances must share one local database file on one server; independent volumes do not share identities or limits. Set the correct `TRUST_PROXY` hop count (0 for direct Node; 1 only behind one trusted proxy). Firestore needs a TTL policy on `identity_rate_limits.expiresAt`; SQLite cleans up expired buckets itself. Local memory mode limits remain per instance.
 - Demo mode simulates balances, history and transfers, not swaps.
 - The WalletConnect project ID falls back to a shared evaluation ID when unset; set your own for any deployment.
 

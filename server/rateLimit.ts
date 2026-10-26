@@ -2,8 +2,8 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  *
- * Fixed-window, per-key rate limiter. In-memory and per instance: it slows abuse of a single
- * instance but is not a global quota. Put a shared limiter (e.g. Cloud Armor) in front for that.
+ * Fixed-window, per-key rate limiter. Durable Firestore/SQLite stores enforce the quota atomically
+ * across instances sharing that store. Development memory limits apply to one process only.
  */
 
 import type { Request, Response, NextFunction } from 'express';

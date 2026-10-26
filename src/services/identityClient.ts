@@ -21,7 +21,7 @@ export interface VerifiedUsername {
 export interface IdentityHealth {
   available: boolean;
   durable: boolean;
-  store: 'firestore' | 'memory' | null;
+  store: 'firestore' | 'sqlite' | 'memory' | null;
 }
 
 export class IdentityApiError extends Error {

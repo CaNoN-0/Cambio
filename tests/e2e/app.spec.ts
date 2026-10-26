@@ -52,7 +52,8 @@ test('landing → dashboard loads without runtime errors and serves the API', as
   await page.goto('/app');
   await expect(page.getByText(/MUSD balance/i).first()).toBeVisible();
   const health = await request.get('/api/health');
-  expect((await health.json()).identity).toMatchObject({ available: true, durable: false });
+  const sqlite = process.env.E2E_IDENTITY_STORE === 'sqlite';
+  expect((await health.json()).identity).toMatchObject({ available: true, durable: sqlite, kind: sqlite ? 'sqlite' : 'memory' });
   expect(errors).toEqual([]);
 });
 
@@ -83,6 +84,7 @@ test('claims a @username with a real wallet signature verified by the server, th
   // The claim dialog opens automatically for a wallet without a username.
   const input = page.getByRole('textbox', { name: 'Username' });
   await expect(input).toBeVisible();
+  if (process.env.E2E_IDENTITY_STORE === 'sqlite') await expect(page.getByText(/Development registry:/)).toHaveCount(0);
   await input.fill(name);
   await expect(page.getByText('Available')).toBeVisible();
   await page.getByRole('button', { name: /sign & claim username/i }).click();

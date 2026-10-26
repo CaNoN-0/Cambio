@@ -11,5 +11,10 @@ server.js
 test-results/
 playwright-report/
 .vercel/
+data/
+backups/
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
 firestore-debug.log
 *-debug.log

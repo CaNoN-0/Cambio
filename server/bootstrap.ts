@@ -5,6 +5,8 @@
  * Chooses and initialises the identity store from environment variables.
  *
  *   IDENTITY_STORE=firestore   Cloud Firestore via firebase-admin (default in production).
+ *   IDENTITY_STORE=sqlite      Self-hosted Node >=24; IDENTITY_DATABASE_PATH must be an absolute
+ *                              file path on persistent local storage. No Firebase credentials.
  *   IDENTITY_STORE=memory      In-process, non-durable. Default in development when no Firestore
  *                              credentials/emulator are configured. Refused in production unless
  *                              ALLOW_NON_DURABLE_IDENTITY=true.
@@ -28,6 +30,7 @@ export interface IdentityBootstrap {
   error?: string;
   store?: IdentityStore['kind'];
   rateLimitStore?: SharedRateLimitStore;
+  close?: () => void;
 }
 
 function appletConfig(): { projectId?: string; firestoreDatabaseId?: string } {
@@ -67,9 +70,24 @@ export async function createFirestoreStore(env: NodeJS.ProcessEnv) {
 }
 
 export async function bootstrapIdentity(env: NodeJS.ProcessEnv = process.env, mode: 'production' | 'development' = 'production'): Promise<IdentityBootstrap> {
-  if (mode === 'production' && env.FIRESTORE_EMULATOR_HOST && env.ALLOW_NON_DURABLE_IDENTITY !== 'true') return { identity: null, error: 'Firestore emulator is not durable production identity storage.' };
   const hasFirestore = !!(env.FIRESTORE_EMULATOR_HOST || env.GOOGLE_APPLICATION_CREDENTIALS || env.FIREBASE_SERVICE_ACCOUNT_JSON || env.K_SERVICE);
   const requested = env.IDENTITY_STORE || (mode === 'production' || hasFirestore ? 'firestore' : 'memory');
+  if (requested === 'firestore' && mode === 'production' && env.FIRESTORE_EMULATOR_HOST && env.ALLOW_NON_DURABLE_IDENTITY !== 'true') return { identity: null, error: 'Firestore emulator is not durable production identity storage.' };
+
+  if (requested === 'sqlite') {
+    if (env.VERCEL || env.K_SERVICE) return { identity: null, error: 'SQLite identity requires a persistent local disk on a self-hosted server, not serverless storage.' };
+    if (!env.IDENTITY_DATABASE_PATH) return { identity: null, error: 'IDENTITY_DATABASE_PATH is required for SQLite identity.' };
+    if (Number(process.versions.node.split('.')[0]) < 24) return { identity: null, error: 'SQLite identity requires Node.js 24 or later.' };
+    try {
+      const { SqliteIdentityStore } = await import('./identity/sqliteStore.js');
+      const store = new SqliteIdentityStore(env.IDENTITY_DATABASE_PATH);
+      await store.ping();
+      return { identity: new IdentityService({ store }), store: 'sqlite', rateLimitStore: store, close: () => store.close() };
+    } catch {
+      console.error('[identity] SQLite initialization failed; check the database path, permissions and schema version.');
+      return { identity: null, error: 'SQLite identity store could not be initialised.' };
+    }
+  }
 
   if (requested === 'memory') {
     if (mode === 'production' && env.ALLOW_NON_DURABLE_IDENTITY !== 'true') {

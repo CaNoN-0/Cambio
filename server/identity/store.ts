@@ -48,8 +48,8 @@ export type CommitResult =
     };
 
 export interface IdentityStore {
-  readonly kind: 'firestore' | 'memory';
-  /** Whether data survives restarts and is shared across instances. */
+  readonly kind: 'firestore' | 'sqlite' | 'memory';
+  /** Whether data survives process restarts. SQLite instances must share the same local disk file. */
   readonly durable: boolean;
   /** Cheap connectivity probe used by /api/health. */
   ping(): Promise<void>;

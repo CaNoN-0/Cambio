@@ -1,0 +1,1 @@
+PASS: compose.yaml validates against the official Compose JSON Schema. Container execution remains unverified.

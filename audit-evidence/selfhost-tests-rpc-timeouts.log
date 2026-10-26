@@ -1,0 +1,56 @@
+
+> cambio@0.2.0 test
+> vitest run --maxWorkers=2 --reporter=dot
+
+
+ RUN  v5.0.5 C:/Users/LUSHEGS/Documents/Codex/2026-10-25/you-re-a-principal-software-engineer/work/Cambio
+
+······x····x······································································································································x···············
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/identity.api.test.ts > registration with a verified wallet signature > rejects a signature from a different key and leaves the challenge usable by the real owner
+Error: Test timed out in 20000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ tests/identity.api.test.ts:90:3
+     88|   });
+     89|
+     90|   it('rejects a signature from a different key and leaves the challeng…
+       |   ^
+     91|     const owner = wallet();
+     92|     const attacker = wallet();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  tests/identity.api.test.ts > registration with a verified wallet signature > rejects a signature over a different (tampered) message
+Error: Test timed out in 20000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ tests/identity.api.test.ts:103:3
+    101|   });
+    102|
+    103|   it('rejects a signature over a different (tampered) message', async …
+       |   ^
+    104|     const a = wallet();
+    105|     const ch = await post('/api/identity/challenge', { address: a.addr…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  tests/sqlite-identity.test.ts > durable SQLite identity > verifies real wallet signatures and refuses replay after restarting the registry
+Error: Test timed out in 20000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ tests/sqlite-identity.test.ts:77:3
+     75|   });
+     76|
+     77|   it('verifies real wallet signatures and refuses replay after restart…
+       |   ^
+     78|     const account = privateKeyToAccount(generatePrivateKey());
+     79|     const origin = { domain: 'pay.example.com', uri: 'https://pay.exam…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  2 failed | 14 passed (16)
+      Tests  3 failed | 159 passed (162)
+   Start at  12:14:01
+   Duration  43.96s (tests 88%, import 8%, environment 3%, transform 1%)
+

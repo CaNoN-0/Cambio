@@ -1,0 +1,2 @@
+[server] fatal Error: IDENTITY_DATABASE_PATH is required for SQLite identity.
+    at main (file:///C:/Users/LUSHEGS/Documents/Codex/2026-10-25/you-re-a-principal-software-engineer/work/Cambio/server.js:970:67)

@@ -17,6 +17,7 @@ import { createPublicClient, getAddress, http, isAddress, verifyMessage, type He
 import { createSiweMessage, generateSiweNonce, parseSiweMessage, validateSiweMessage } from 'viem/siwe';
 import { MEZO_MAINNET, MEZO_TESTNET } from '../../src/config/chains.js';
 import { formatUsername, validateUsername } from '../../shared/username.js';
+import { verifyWalletSignature } from '../../shared/signatureVerification.js';
 import { StoreUnavailableError, type ClaimAction, type IdentityStore, type UsernameRecord } from './store.js';
 
 export const CHALLENGE_TTL_MS = 5 * 60 * 1000;
@@ -28,15 +29,15 @@ export function defaultSignatureVerifier(): SignatureVerifier {
   const rpcByChain = new Map([MEZO_TESTNET, MEZO_MAINNET].map((c) => [c.chainId, c.rpcUrls[0]]));
   return async ({ address, message, signature, chainId }) => {
     try {
-      if (await verifyMessage({ address, message, signature })) return true;
-    } catch {
-      // not a valid ECDSA signature; may still be ERC-1271
-    }
-    const rpc = rpcByChain.get(chainId);
-    if (!rpc) return false;
-    try {
-      const client = createPublicClient({ transport: http(rpc, { timeout: 8000 }) });
-      return await client.verifyMessage({ address, message, signature });
+      const rpc = rpcByChain.get(chainId);
+      if (!rpc) return false;
+      const client = createPublicClient({ transport: http(rpc, { timeout: 3000, retryCount: 0 }) });
+      return await verifyWalletSignature({
+        signature,
+        verifyEoa: () => verifyMessage({ address, message, signature }),
+        getCode: () => client.getCode({ address }),
+        verifyContract: () => client.verifyMessage({ address, message, signature }),
+      });
     } catch {
       return false;
     }
