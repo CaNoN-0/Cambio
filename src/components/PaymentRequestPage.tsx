@@ -37,12 +37,15 @@ export const PaymentRequestPage: React.FC<PaymentRequestPageProps> = ({ link, wa
   const [paidHash, setPaidHash] = useState<Hex | null>(link.kind === 'signed' ? link.proofTx : null);
   const [copied, setCopied] = useState<string | null>(null);
   const [switchError, setSwitchError] = useState<string | null>(null);
+  const [now, setNow] = useState(() => Math.floor(Date.now() / 1000));
+  useEffect(() => { const timer = setInterval(() => setNow(Math.floor(Date.now() / 1000)), 1000); return () => clearInterval(timer); }, []);
 
   const chain = link.kind === 'signed' ? getChainConfig(link.request.chainId) : link.kind === 'unsigned' ? getChainConfig(link.chainId) : null;
   const amount = link.kind === 'signed' ? BigInt(link.request.amount) : link.kind === 'unsigned' ? link.amount : null;
   const memo = link.kind === 'signed' ? link.request.memo : link.kind === 'unsigned' ? link.memo : '';
   const expiresAt = link.kind === 'signed' ? link.request.expiresAt : link.kind === 'unsigned' ? link.expiresAt : null;
-  const expired = isExpired(expiresAt);
+  const expired = isExpired(expiresAt, now);
+  const notActive = link.kind === 'signed' && now < link.request.createdAt;
 
   // 1. Verify the request signature (EOA or ERC-1271) before anything else.
   useEffect(() => {
@@ -83,14 +86,14 @@ export const PaymentRequestPage: React.FC<PaymentRequestPageProps> = ({ link, wa
 
   // 3. A payment proof (tx hash) is checked against the chain, never trusted.
   useEffect(() => {
-    if (link.kind !== 'signed' || !paidHash || !chain) return;
+    if (link.kind !== 'signed' || sig !== 'valid' || !paidHash || !chain) return;
     let cancelled = false;
     setProof(null);
     verifyPaymentTx(publicClientFor(chain.chainId) as never, link.request, paidHash).then((res) => !cancelled && setProof(res));
     return () => {
       cancelled = true;
     };
-  }, [link, paidHash, chain]);
+  }, [link, paidHash, chain, sig]);
 
   const lockedRequest = useMemo(
     () => (link.kind === 'signed' && sig === 'valid' ? { request: link.request, recipientLabel: verifiedName ?? shortenAddress(link.request.recipient) } : null),
@@ -106,7 +109,7 @@ export const PaymentRequestPage: React.FC<PaymentRequestPageProps> = ({ link, wa
 
   const isOwn = !!(wallet.address && recipient && wallet.address.toLowerCase() === recipient.toLowerCase());
   const wrongChain = wallet.isConnected && chain && wallet.chainId !== chain.chainId;
-  const payable = !!chain && !!recipient && !expired && (link.kind === 'unsigned' || sig === 'valid') && !(proof?.state === 'settled');
+  const payable = !!chain && !!recipient && !expired && !notActive && (link.kind === 'unsigned' || sig === 'valid') && !(proof?.state === 'settled');
   const proofLink = link.kind === 'signed' && paidHash ? encodePaymentLink(window.location.origin, link.request, link.signature, paidHash) : null;
 
   const handleSwitch = async () => {
@@ -240,6 +243,8 @@ export const PaymentRequestPage: React.FC<PaymentRequestPageProps> = ({ link, wa
       <div className="relative z-10 pt-2 space-y-3">
         {proof?.state === 'settled' ? null : expired ? (
           <p className="p-3.5 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-600 text-xs text-center">This request has expired. Ask the recipient for a new one.</p>
+        ) : notActive ? (
+          <p role="alert" className="p-3 text-xs text-amber-700">This request has a future creation time and is not active yet. Check your clock or ask for a new request.</p>
         ) : !chain ? (
           <p className="p-3.5 rounded-2xl bg-red-500/10 text-red-600 text-xs text-center">This request is for a network Cambio does not support.</p>
         ) : !wallet.isConnected ? (

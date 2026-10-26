@@ -1,17 +1,12 @@
 {
   "short_name": "Cambio",
   "name": "Cambio",
-  "description": "Monochromatic Stablecoin Settlement on Mezo",
+  "description": "Non-custodial MUSD payments on Mezo with verified usernames and signed payment requests",
   "icons": [
     {
       "src": "/logo.png",
       "type": "image/png",
-      "sizes": "192x192"
-    },
-    {
-      "src": "/logo.png",
-      "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "480x520"
     }
   ],
   "start_url": "/",

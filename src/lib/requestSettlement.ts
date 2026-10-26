@@ -29,11 +29,12 @@ export type SettlementCheck =
 export async function verifyPaymentTx(client: SettlementClient, req: SignedPaymentRequest, hash: Hex): Promise<SettlementCheck> {
   try {
     const [tx, receipt] = await Promise.all([client.getTransaction({ hash }), client.getTransactionReceipt({ hash })]);
+    if (tx.hash.toLowerCase() !== hash.toLowerCase()) return { state: 'error', message: 'RPC returned a different transaction hash.' };
     let ts: number | null = null;
     try {
       ts = Number((await client.getBlock({ blockNumber: receipt.blockNumber })).timestamp) * 1000;
     } catch {
-      ts = null;
+      return { state: 'error', message: 'Could not verify the payment block timestamp.' };
     }
     const result = verifySettlement(req, tx, receipt, ts);
     return result.status === 'settled' || result.status === 'settled_after_expiry'
@@ -66,6 +67,7 @@ export async function findRequestSettlement(
   for (const c of candidates) {
     const check = await verifyPaymentTx(client, req, c.hash!);
     if (check.state === 'settled') return check;
+    if (check.state === 'error' || check.state === 'not_found') return { state: 'error', message: 'Some indexed payments could not be verified by RPC. Try again shortly.' };
   }
   return { state: 'not_found' };
 }

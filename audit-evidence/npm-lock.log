@@ -1,0 +1,831 @@
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: @solana/accounts@5.5.1
+npm warn Found: typescript@7.0.2
+npm warn node_modules/typescript
+npm warn   dev typescript@"^7.0.2" from the root project
+npm warn   11 more (abitype, mipd, ox, viem, wagmi, ox, ox, abitype, @wagmi/core, ...)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peerOptional typescript@"^5.0.0" from @solana/accounts@5.5.1
+npm warn node_modules/@solana/accounts
+npm warn   @solana/accounts@"5.5.1" from @solana/kit@5.5.1
+npm warn   node_modules/@solana/kit
+npm warn   1 more (@solana/sysvars)
+npm warn
+npm warn Conflicting peer dependency: typescript@5.9.3
+npm warn node_modules/typescript
+npm warn   peerOptional typescript@"^5.0.0" from @solana/accounts@5.5.1
+npm warn   node_modules/@solana/accounts
+npm warn     @solana/accounts@"5.5.1" from @solana/kit@5.5.1
+npm warn     node_modules/@solana/kit
+npm warn     1 more (@solana/sysvars)
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: @solana/addresses@5.5.1
+npm warn Found: typescript@7.0.2
+npm warn node_modules/typescript
+npm warn   dev typescript@"^7.0.2" from the root project
+npm warn   11 more (abitype, mipd, ox, viem, wagmi, ox, ox, abitype, @wagmi/core, ...)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peerOptional typescript@"^5.0.0" from @solana/addresses@5.5.1
+npm warn node_modules/@solana/addresses
+npm warn   @solana/addresses@"5.5.1" from @solana/accounts@5.5.1
+npm warn   node_modules/@solana/accounts
+npm warn   10 more (@solana/programs, @solana/rpc-api, ...)
+npm warn
+npm warn Conflicting peer dependency: typescript@5.9.3
+npm warn node_modules/typescript
+npm warn   peerOptional typescript@"^5.0.0" from @solana/addresses@5.5.1
+npm warn   node_modules/@solana/addresses
+npm warn     @solana/addresses@"5.5.1" from @solana/accounts@5.5.1
+npm warn     node_modules/@solana/accounts
+npm warn     10 more (@solana/programs, @solana/rpc-api, ...)
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: @solana/assertions@5.5.1
+npm warn Found: typescript@7.0.2
+npm warn node_modules/typescript
+npm warn   dev typescript@"^7.0.2" from the root project
+npm warn   11 more (abitype, mipd, ox, viem, wagmi, ox, ox, abitype, @wagmi/core, ...)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peerOptional typescript@"^5.0.0" from @solana/assertions@5.5.1
+npm warn node_modules/@solana/assertions
+npm warn   @solana/assertions@"5.5.1" from @solana/addresses@5.5.1
+npm warn   node_modules/@solana/addresses
+npm warn   1 more (@solana/keys)
+npm warn
+npm warn Conflicting peer dependency: typescript@5.9.3
+npm warn node_modules/typescript
+npm warn   peerOptional typescript@"^5.0.0" from @solana/assertions@5.5.1
+npm warn   node_modules/@solana/assertions
+npm warn     @solana/assertions@"5.5.1" from @solana/addresses@5.5.1
+npm warn     node_modules/@solana/addresses
+npm warn     1 more (@solana/keys)
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: @solana/codecs@5.5.1
+npm warn Found: typescript@7.0.2
+npm warn node_modules/typescript
+npm warn   dev typescript@"^7.0.2" from the root project
+npm warn   11 more (abitype, mipd, ox, viem, wagmi, ox, ox, abitype, @wagmi/core, ...)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peerOptional typescript@"^5.0.0" from @solana/codecs@5.5.1
+npm warn node_modules/@solana/codecs
+npm warn   @solana/codecs@"5.5.1" from @solana/kit@5.5.1
+npm warn   node_modules/@solana/kit
+npm warn   1 more (@solana/sysvars)
+npm warn
+npm warn Conflicting peer dependency: typescript@5.9.3
+npm warn node_modules/typescript
+npm warn   peerOptional typescript@"^5.0.0" from @solana/codecs@5.5.1
+npm warn   node_modules/@solana/codecs
+npm warn     @solana/codecs@"5.5.1" from @solana/kit@5.5.1
+npm warn     node_modules/@solana/kit
+npm warn     1 more (@solana/sysvars)
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: @solana/codecs-core@5.5.1
+npm warn Found: typescript@7.0.2
+npm warn node_modules/typescript
+npm warn   dev typescript@"^7.0.2" from the root project
+npm warn   11 more (abitype, mipd, ox, viem, wagmi, ox, ox, abitype, @wagmi/core, ...)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peerOptional typescript@"^5.0.0" from @solana/codecs-core@5.5.1
+npm warn node_modules/@solana/codecs-core
+npm warn   @solana/codecs-core@"5.5.1" from @solana/codecs@5.5.1
+npm warn   node_modules/@solana/codecs
+npm warn   14 more (@solana/codecs-numbers, @solana/addresses, ...)
+npm warn
+npm warn Conflicting peer dependency: typescript@5.9.3
+npm warn node_modules/typescript
+npm warn   peerOptional typescript@"^5.0.0" from @solana/codecs-core@5.5.1
+npm warn   node_modules/@solana/codecs-core
+npm warn     @solana/codecs-core@"5.5.1" from @solana/codecs@5.5.1
+npm warn     node_modules/@solana/codecs
+npm warn     14 more (@solana/codecs-numbers, @solana/addresses, ...)
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: @solana/codecs-data-structures@5.5.1
+npm warn Found: typescript@7.0.2
+npm warn node_modules/typescript
+npm warn   dev typescript@"^7.0.2" from the root project
+npm warn   11 more (abitype, mipd, ox, viem, wagmi, ox, ox, abitype, @wagmi/core, ...)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peerOptional typescript@"^5.0.0" from @solana/codecs-data-structures@5.5.1
+npm warn node_modules/@solana/codecs-data-structures
+npm warn   @solana/codecs-data-structures@"5.5.1" from @solana/codecs@5.5.1
+npm warn   node_modules/@solana/codecs
+npm warn   4 more (@solana/options, @solana/transactions, ...)
+npm warn
+npm warn Conflicting peer dependency: typescript@5.9.3
+npm warn node_modules/typescript
+npm warn   peerOptional typescript@"^5.0.0" from @solana/codecs-data-structures@5.5.1
+npm warn   node_modules/@solana/codecs-data-structures
+npm warn     @solana/codecs-data-structures@"5.5.1" from @solana/codecs@5.5.1
+npm warn     node_modules/@solana/codecs
+npm warn     4 more (@solana/options, @solana/transactions, ...)
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: @solana/codecs-numbers@5.5.1
+npm warn Found: typescript@7.0.2
+npm warn node_modules/typescript
+npm warn   dev typescript@"^7.0.2" from the root project
+npm warn   11 more (abitype, mipd, ox, viem, wagmi, ox, ox, abitype, @wagmi/core, ...)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peerOptional typescript@"^5.0.0" from @solana/codecs-numbers@5.5.1
+npm warn node_modules/@solana/codecs-numbers
+npm warn   @solana/codecs-numbers@"5.5.1" from @solana/codecs@5.5.1
+npm warn   node_modules/@solana/codecs
+npm warn   7 more (@solana/codecs-data-structures, ...)
+npm warn
+npm warn Conflicting peer dependency: typescript@5.9.3
+npm warn node_modules/typescript
+npm warn   peerOptional typescript@"^5.0.0" from @solana/codecs-numbers@5.5.1
+npm warn   node_modules/@solana/codecs-numbers
+npm warn     @solana/codecs-numbers@"5.5.1" from @solana/codecs@5.5.1
+npm warn     node_modules/@solana/codecs
+npm warn     7 more (@solana/codecs-data-structures, ...)
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: @solana/codecs-strings@5.5.1
+npm warn Found: typescript@7.0.2
+npm warn node_modules/typescript
+npm warn   dev typescript@"^7.0.2" from the root project
+npm warn   11 more (abitype, mipd, ox, viem, wagmi, ox, ox, abitype, @wagmi/core, ...)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peerOptional typescript@"^5.0.0" from @solana/codecs-strings@5.5.1
+npm warn node_modules/@solana/codecs-strings
+npm warn   @solana/codecs-strings@"5.5.1" from @solana/codecs@5.5.1
+npm warn   node_modules/@solana/codecs
+npm warn   9 more (@solana/addresses, @solana/accounts, @solana/keys, ...)
+npm warn
+npm warn Conflicting peer dependency: typescript@5.9.3
+npm warn node_modules/typescript
+npm warn   peerOptional typescript@"^5.0.0" from @solana/codecs-strings@5.5.1
+npm warn   node_modules/@solana/codecs-strings
+npm warn     @solana/codecs-strings@"5.5.1" from @solana/codecs@5.5.1
+npm warn     node_modules/@solana/codecs
+npm warn     9 more (@solana/addresses, @solana/accounts, @solana/keys, ...)
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: @solana/errors@5.5.1
+npm warn Found: typescript@7.0.2
+npm warn node_modules/typescript
+npm warn   dev typescript@"^7.0.2" from the root project
+npm warn   11 more (abitype, mipd, ox, viem, wagmi, ox, ox, abitype, @wagmi/core, ...)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peerOptional typescript@"^5.0.0" from @solana/errors@5.5.1
+npm warn node_modules/@solana/errors
+npm warn   @solana/errors@"5.5.1" from @solana/assertions@5.5.1
+npm warn   node_modules/@solana/assertions
+npm warn   28 more (@solana/codecs-core, @solana/codecs-numbers, ...)
+npm warn
+npm warn Conflicting peer dependency: typescript@5.9.3
+npm warn node_modules/typescript
+npm warn   peerOptional typescript@"^5.0.0" from @solana/errors@5.5.1
+npm warn   node_modules/@solana/errors
+npm warn     @solana/errors@"5.5.1" from @solana/assertions@5.5.1
+npm warn     node_modules/@solana/assertions
+npm warn     28 more (@solana/codecs-core, @solana/codecs-numbers, ...)
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: @solana/fast-stable-stringify@5.5.1
+npm warn Found: typescript@7.0.2
+npm warn node_modules/typescript
+npm warn   dev typescript@"^7.0.2" from the root project
+npm warn   11 more (abitype, mipd, ox, viem, wagmi, ox, ox, abitype, @wagmi/core, ...)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peerOptional typescript@"^5.0.0" from @solana/fast-stable-stringify@5.5.1
+npm warn node_modules/@solana/fast-stable-stringify
+npm warn   @solana/fast-stable-stringify@"5.5.1" from @solana/rpc@5.5.1
+npm warn   node_modules/@solana/rpc
+npm warn   1 more (@solana/rpc-subscriptions)
+npm warn
+npm warn Conflicting peer dependency: typescript@5.9.3
+npm warn node_modules/typescript
+npm warn   peerOptional typescript@"^5.0.0" from @solana/fast-stable-stringify@5.5.1
+npm warn   node_modules/@solana/fast-stable-stringify
+npm warn     @solana/fast-stable-stringify@"5.5.1" from @solana/rpc@5.5.1
+npm warn     node_modules/@solana/rpc
+npm warn     1 more (@solana/rpc-subscriptions)
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: @solana/functional@5.5.1
+npm warn Found: typescript@7.0.2
+npm warn node_modules/typescript
+npm warn   dev typescript@"^7.0.2" from the root project
+npm warn   11 more (abitype, mipd, ox, viem, wagmi, ox, ox, abitype, @wagmi/core, ...)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peerOptional typescript@"^5.0.0" from @solana/functional@5.5.1
+npm warn node_modules/@solana/functional
+npm warn   @solana/functional@"5.5.1" from @solana/rpc@5.5.1
+npm warn   node_modules/@solana/rpc
+npm warn   6 more (@solana/rpc-subscriptions, @solana/rpc-transformers, ...)
+npm warn
+npm warn Conflicting peer dependency: typescript@5.9.3
+npm warn node_modules/typescript
+npm warn   peerOptional typescript@"^5.0.0" from @solana/functional@5.5.1
+npm warn   node_modules/@solana/functional
+npm warn     @solana/functional@"5.5.1" from @solana/rpc@5.5.1
+npm warn     node_modules/@solana/rpc
+npm warn     6 more (@solana/rpc-subscriptions, @solana/rpc-transformers, ...)
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: @solana/instruction-plans@5.5.1
+npm warn Found: typescript@7.0.2
+npm warn node_modules/typescript
+npm warn   dev typescript@"^7.0.2" from the root project
+npm warn   11 more (abitype, mipd, ox, viem, wagmi, ox, ox, abitype, @wagmi/core, ...)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peerOptional typescript@"^5.0.0" from @solana/instruction-plans@5.5.1
+npm warn node_modules/@solana/instruction-plans
+npm warn   @solana/instruction-plans@"5.5.1" from @solana/kit@5.5.1
+npm warn   node_modules/@solana/kit
+npm warn
+npm warn Conflicting peer dependency: typescript@5.9.3
+npm warn node_modules/typescript
+npm warn   peerOptional typescript@"^5.0.0" from @solana/instruction-plans@5.5.1
+npm warn   node_modules/@solana/instruction-plans
+npm warn     @solana/instruction-plans@"5.5.1" from @solana/kit@5.5.1
+npm warn     node_modules/@solana/kit
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: @solana/instructions@5.5.1
+npm warn Found: typescript@7.0.2
+npm warn node_modules/typescript
+npm warn   dev typescript@"^7.0.2" from the root project
+npm warn   11 more (abitype, mipd, ox, viem, wagmi, ox, ox, abitype, @wagmi/core, ...)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peerOptional typescript@"^5.0.0" from @solana/instructions@5.5.1
+npm warn node_modules/@solana/instructions
+npm warn   @solana/instructions@"5.5.1" from @solana/instruction-plans@5.5.1
+npm warn   node_modules/@solana/instruction-plans
+npm warn   4 more (@solana/signers, @solana/transactions, ...)
+npm warn
+npm warn Conflicting peer dependency: typescript@5.9.3
+npm warn node_modules/typescript
+npm warn   peerOptional typescript@"^5.0.0" from @solana/instructions@5.5.1
+npm warn   node_modules/@solana/instructions
+npm warn     @solana/instructions@"5.5.1" from @solana/instruction-plans@5.5.1
+npm warn     node_modules/@solana/instruction-plans
+npm warn     4 more (@solana/signers, @solana/transactions, ...)
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: @solana/keys@5.5.1
+npm warn Found: typescript@7.0.2
+npm warn node_modules/typescript
+npm warn   dev typescript@"^7.0.2" from the root project
+npm warn   11 more (abitype, mipd, ox, viem, wagmi, ox, ox, abitype, @wagmi/core, ...)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peerOptional typescript@"^5.0.0" from @solana/keys@5.5.1
+npm warn node_modules/@solana/keys
+npm warn   @solana/keys@"5.5.1" from @solana/instruction-plans@5.5.1
+npm warn   node_modules/@solana/instruction-plans
+npm warn   7 more (@solana/rpc-api, @solana/rpc-subscriptions-api, ...)
+npm warn
+npm warn Conflicting peer dependency: typescript@5.9.3
+npm warn node_modules/typescript
+npm warn   peerOptional typescript@"^5.0.0" from @solana/keys@5.5.1
+npm warn   node_modules/@solana/keys
+npm warn     @solana/keys@"5.5.1" from @solana/instruction-plans@5.5.1
+npm warn     node_modules/@solana/instruction-plans
+npm warn     7 more (@solana/rpc-api, @solana/rpc-subscriptions-api, ...)
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: @solana/kit@5.5.1
+npm warn Found: typescript@7.0.2
+npm warn node_modules/typescript
+npm warn   dev typescript@"^7.0.2" from the root project
+npm warn   11 more (abitype, mipd, ox, viem, wagmi, ox, ox, abitype, @wagmi/core, ...)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peerOptional typescript@"^5.0.0" from @solana/kit@5.5.1
+npm warn node_modules/@solana/kit
+npm warn   @solana/kit@"^5.5.1" from @coinbase/cdp-sdk@1.59.0
+npm warn   node_modules/@coinbase/cdp-sdk
+npm warn   2 more (@solana-program/token, @solana-program/system)
+npm warn
+npm warn Conflicting peer dependency: typescript@5.9.3
+npm warn node_modules/typescript
+npm warn   peerOptional typescript@"^5.0.0" from @solana/kit@5.5.1
+npm warn   node_modules/@solana/kit
+npm warn     @solana/kit@"^5.5.1" from @coinbase/cdp-sdk@1.59.0
+npm warn     node_modules/@coinbase/cdp-sdk
+npm warn     2 more (@solana-program/token, @solana-program/system)
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: @solana/nominal-types@5.5.1
+npm warn Found: typescript@7.0.2
+npm warn node_modules/typescript
+npm warn   dev typescript@"^7.0.2" from the root project
+npm warn   11 more (abitype, mipd, ox, viem, wagmi, ox, ox, abitype, @wagmi/core, ...)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peerOptional typescript@"^5.0.0" from @solana/nominal-types@5.5.1
+npm warn node_modules/@solana/nominal-types
+npm warn   @solana/nominal-types@"5.5.1" from @solana/addresses@5.5.1
+npm warn   node_modules/@solana/addresses
+npm warn   7 more (@solana/keys, @solana/rpc-transformers, ...)
+npm warn
+npm warn Conflicting peer dependency: typescript@5.9.3
+npm warn node_modules/typescript
+npm warn   peerOptional typescript@"^5.0.0" from @solana/nominal-types@5.5.1
+npm warn   node_modules/@solana/nominal-types
+npm warn     @solana/nominal-types@"5.5.1" from @solana/addresses@5.5.1
+npm warn     node_modules/@solana/addresses
+npm warn     7 more (@solana/keys, @solana/rpc-transformers, ...)
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: @solana/offchain-messages@5.5.1
+npm warn Found: typescript@7.0.2
+npm warn node_modules/typescript
+npm warn   dev typescript@"^7.0.2" from the root project
+npm warn   11 more (abitype, mipd, ox, viem, wagmi, ox, ox, abitype, @wagmi/core, ...)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peerOptional typescript@"^5.0.0" from @solana/offchain-messages@5.5.1
+npm warn node_modules/@solana/offchain-messages
+npm warn   @solana/offchain-messages@"5.5.1" from @solana/signers@5.5.1
+npm warn   node_modules/@solana/signers
+npm warn   1 more (@solana/kit)
+npm warn
+npm warn Conflicting peer dependency: typescript@5.9.3
+npm warn node_modules/typescript
+npm warn   peerOptional typescript@"^5.0.0" from @solana/offchain-messages@5.5.1
+npm warn   node_modules/@solana/offchain-messages
+npm warn     @solana/offchain-messages@"5.5.1" from @solana/signers@5.5.1
+npm warn     node_modules/@solana/signers
+npm warn     1 more (@solana/kit)
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: @solana/options@5.5.1
+npm warn Found: typescript@7.0.2
+npm warn node_modules/typescript
+npm warn   dev typescript@"^7.0.2" from the root project
+npm warn   11 more (abitype, mipd, ox, viem, wagmi, ox, ox, abitype, @wagmi/core, ...)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peerOptional typescript@"^5.0.0" from @solana/options@5.5.1
+npm warn node_modules/@solana/options
+npm warn   @solana/options@"5.5.1" from @solana/codecs@5.5.1
+npm warn   node_modules/@solana/codecs
+npm warn
+npm warn Conflicting peer dependency: typescript@5.9.3
+npm warn node_modules/typescript
+npm warn   peerOptional typescript@"^5.0.0" from @solana/options@5.5.1
+npm warn   node_modules/@solana/options
+npm warn     @solana/options@"5.5.1" from @solana/codecs@5.5.1
+npm warn     node_modules/@solana/codecs
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: @solana/plugin-core@5.5.1
+npm warn Found: typescript@7.0.2
+npm warn node_modules/typescript
+npm warn   dev typescript@"^7.0.2" from the root project
+npm warn   11 more (abitype, mipd, ox, viem, wagmi, ox, ox, abitype, @wagmi/core, ...)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peerOptional typescript@"^5.0.0" from @solana/plugin-core@5.5.1
+npm warn node_modules/@solana/plugin-core
+npm warn   @solana/plugin-core@"5.5.1" from @solana/kit@5.5.1
+npm warn   node_modules/@solana/kit
+npm warn
+npm warn Conflicting peer dependency: typescript@5.9.3
+npm warn node_modules/typescript
+npm warn   peerOptional typescript@"^5.0.0" from @solana/plugin-core@5.5.1
+npm warn   node_modules/@solana/plugin-core
+npm warn     @solana/plugin-core@"5.5.1" from @solana/kit@5.5.1
+npm warn     node_modules/@solana/kit
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: @solana/programs@5.5.1
+npm warn Found: typescript@7.0.2
+npm warn node_modules/typescript
+npm warn   dev typescript@"^7.0.2" from the root project
+npm warn   11 more (abitype, mipd, ox, viem, wagmi, ox, ox, abitype, @wagmi/core, ...)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peerOptional typescript@"^5.0.0" from @solana/programs@5.5.1
+npm warn node_modules/@solana/programs
+npm warn   @solana/programs@"5.5.1" from @solana/kit@5.5.1
+npm warn   node_modules/@solana/kit
+npm warn
+npm warn Conflicting peer dependency: typescript@5.9.3
+npm warn node_modules/typescript
+npm warn   peerOptional typescript@"^5.0.0" from @solana/programs@5.5.1
+npm warn   node_modules/@solana/programs
+npm warn     @solana/programs@"5.5.1" from @solana/kit@5.5.1
+npm warn     node_modules/@solana/kit
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: @solana/promises@5.5.1
+npm warn Found: typescript@7.0.2
+npm warn node_modules/typescript
+npm warn   dev typescript@"^7.0.2" from the root project
+npm warn   11 more (abitype, mipd, ox, viem, wagmi, ox, ox, abitype, @wagmi/core, ...)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peerOptional typescript@"^5.0.0" from @solana/promises@5.5.1
+npm warn node_modules/@solana/promises
+npm warn   @solana/promises@"5.5.1" from @solana/instruction-plans@5.5.1
+npm warn   node_modules/@solana/instruction-plans
+npm warn   3 more (@solana/rpc-subscriptions, ...)
+npm warn
+npm warn Conflicting peer dependency: typescript@5.9.3
+npm warn node_modules/typescript
+npm warn   peerOptional typescript@"^5.0.0" from @solana/promises@5.5.1
+npm warn   node_modules/@solana/promises
+npm warn     @solana/promises@"5.5.1" from @solana/instruction-plans@5.5.1
+npm warn     node_modules/@solana/instruction-plans
+npm warn     3 more (@solana/rpc-subscriptions, ...)
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: @solana/rpc@5.5.1
+npm warn Found: typescript@7.0.2
+npm warn node_modules/typescript
+npm warn   dev typescript@"^7.0.2" from the root project
+npm warn   11 more (abitype, mipd, ox, viem, wagmi, ox, ox, abitype, @wagmi/core, ...)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peerOptional typescript@"^5.0.0" from @solana/rpc@5.5.1
+npm warn node_modules/@solana/rpc
+npm warn   @solana/rpc@"5.5.1" from @solana/transaction-confirmation@5.5.1
+npm warn   node_modules/@solana/transaction-confirmation
+npm warn   1 more (@solana/kit)
+npm warn
+npm warn Conflicting peer dependency: typescript@5.9.3
+npm warn node_modules/typescript
+npm warn   peerOptional typescript@"^5.0.0" from @solana/rpc@5.5.1
+npm warn   node_modules/@solana/rpc
+npm warn     @solana/rpc@"5.5.1" from @solana/transaction-confirmation@5.5.1
+npm warn     node_modules/@solana/transaction-confirmation
+npm warn     1 more (@solana/kit)
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: @solana/rpc-api@5.5.1
+npm warn Found: typescript@7.0.2
+npm warn node_modules/typescript
+npm warn   dev typescript@"^7.0.2" from the root project
+npm warn   11 more (abitype, mipd, ox, viem, wagmi, ox, ox, abitype, @wagmi/core, ...)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peerOptional typescript@"^5.0.0" from @solana/rpc-api@5.5.1
+npm warn node_modules/@solana/rpc-api
+npm warn   @solana/rpc-api@"5.5.1" from @solana/rpc@5.5.1
+npm warn   node_modules/@solana/rpc
+npm warn   1 more (@solana/kit)
+npm warn
+npm warn Conflicting peer dependency: typescript@5.9.3
+npm warn node_modules/typescript
+npm warn   peerOptional typescript@"^5.0.0" from @solana/rpc-api@5.5.1
+npm warn   node_modules/@solana/rpc-api
+npm warn     @solana/rpc-api@"5.5.1" from @solana/rpc@5.5.1
+npm warn     node_modules/@solana/rpc
+npm warn     1 more (@solana/kit)
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: @solana/rpc-parsed-types@5.5.1
+npm warn Found: typescript@7.0.2
+npm warn node_modules/typescript
+npm warn   dev typescript@"^7.0.2" from the root project
+npm warn   11 more (abitype, mipd, ox, viem, wagmi, ox, ox, abitype, @wagmi/core, ...)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peerOptional typescript@"^5.0.0" from @solana/rpc-parsed-types@5.5.1
+npm warn node_modules/@solana/rpc-parsed-types
+npm warn   @solana/rpc-parsed-types@"5.5.1" from @solana/rpc-api@5.5.1
+npm warn   node_modules/@solana/rpc-api
+npm warn   1 more (@solana/kit)
+npm warn
+npm warn Conflicting peer dependency: typescript@5.9.3
+npm warn node_modules/typescript
+npm warn   peerOptional typescript@"^5.0.0" from @solana/rpc-parsed-types@5.5.1
+npm warn   node_modules/@solana/rpc-parsed-types
+npm warn     @solana/rpc-parsed-types@"5.5.1" from @solana/rpc-api@5.5.1
+npm warn     node_modules/@solana/rpc-api
+npm warn     1 more (@solana/kit)
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: @solana/rpc-spec@5.5.1
+npm warn Found: typescript@7.0.2
+npm warn node_modules/typescript
+npm warn   dev typescript@"^7.0.2" from the root project
+npm warn   11 more (abitype, mipd, ox, viem, wagmi, ox, ox, abitype, @wagmi/core, ...)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peerOptional typescript@"^5.0.0" from @solana/rpc-spec@5.5.1
+npm warn node_modules/@solana/rpc-spec
+npm warn   @solana/rpc-spec@"5.5.1" from @solana/accounts@5.5.1
+npm warn   node_modules/@solana/accounts
+npm warn   3 more (@solana/rpc, @solana/rpc-api, @solana/rpc-transport-http)
+npm warn
+npm warn Conflicting peer dependency: typescript@5.9.3
+npm warn node_modules/typescript
+npm warn   peerOptional typescript@"^5.0.0" from @solana/rpc-spec@5.5.1
+npm warn   node_modules/@solana/rpc-spec
+npm warn     @solana/rpc-spec@"5.5.1" from @solana/accounts@5.5.1
+npm warn     node_modules/@solana/accounts
+npm warn     3 more (@solana/rpc, @solana/rpc-api, @solana/rpc-transport-http)
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: @solana/rpc-spec-types@5.5.1
+npm warn Found: typescript@7.0.2
+npm warn node_modules/typescript
+npm warn   dev typescript@"^7.0.2" from the root project
+npm warn   11 more (abitype, mipd, ox, viem, wagmi, ox, ox, abitype, @wagmi/core, ...)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peerOptional typescript@"^5.0.0" from @solana/rpc-spec-types@5.5.1
+npm warn node_modules/@solana/rpc-spec-types
+npm warn   @solana/rpc-spec-types@"5.5.1" from @solana/rpc@5.5.1
+npm warn   node_modules/@solana/rpc
+npm warn   6 more (@solana/rpc-spec, @solana/rpc-subscriptions, ...)
+npm warn
+npm warn Conflicting peer dependency: typescript@5.9.3
+npm warn node_modules/typescript
+npm warn   peerOptional typescript@"^5.0.0" from @solana/rpc-spec-types@5.5.1
+npm warn   node_modules/@solana/rpc-spec-types
+npm warn     @solana/rpc-spec-types@"5.5.1" from @solana/rpc@5.5.1
+npm warn     node_modules/@solana/rpc
+npm warn     6 more (@solana/rpc-spec, @solana/rpc-subscriptions, ...)
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: @solana/rpc-subscriptions@5.5.1
+npm warn Found: typescript@7.0.2
+npm warn node_modules/typescript
+npm warn   dev typescript@"^7.0.2" from the root project
+npm warn   11 more (abitype, mipd, ox, viem, wagmi, ox, ox, abitype, @wagmi/core, ...)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peerOptional typescript@"^5.0.0" from @solana/rpc-subscriptions@5.5.1
+npm warn node_modules/@solana/rpc-subscriptions
+npm warn   @solana/rpc-subscriptions@"5.5.1" from @solana/transaction-confirmation@5.5.1
+npm warn   node_modules/@solana/transaction-confirmation
+npm warn   1 more (@solana/kit)
+npm warn
+npm warn Conflicting peer dependency: typescript@5.9.3
+npm warn node_modules/typescript
+npm warn   peerOptional typescript@"^5.0.0" from @solana/rpc-subscriptions@5.5.1
+npm warn   node_modules/@solana/rpc-subscriptions
+npm warn     @solana/rpc-subscriptions@"5.5.1" from @solana/transaction-confirmation@5.5.1
+npm warn     node_modules/@solana/transaction-confirmation
+npm warn     1 more (@solana/kit)
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: @solana/rpc-subscriptions-api@5.5.1
+npm warn Found: typescript@7.0.2
+npm warn node_modules/typescript
+npm warn   dev typescript@"^7.0.2" from the root project
+npm warn   11 more (abitype, mipd, ox, viem, wagmi, ox, ox, abitype, @wagmi/core, ...)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peerOptional typescript@"^5.0.0" from @solana/rpc-subscriptions-api@5.5.1
+npm warn node_modules/@solana/rpc-subscriptions-api
+npm warn   @solana/rpc-subscriptions-api@"5.5.1" from @solana/rpc-subscriptions@5.5.1
+npm warn   node_modules/@solana/rpc-subscriptions
+npm warn
+npm warn Conflicting peer dependency: typescript@5.9.3
+npm warn node_modules/typescript
+npm warn   peerOptional typescript@"^5.0.0" from @solana/rpc-subscriptions-api@5.5.1
+npm warn   node_modules/@solana/rpc-subscriptions-api
+npm warn     @solana/rpc-subscriptions-api@"5.5.1" from @solana/rpc-subscriptions@5.5.1
+npm warn     node_modules/@solana/rpc-subscriptions
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: @solana/rpc-subscriptions-channel-websocket@5.5.1
+npm warn Found: typescript@7.0.2
+npm warn node_modules/typescript
+npm warn   dev typescript@"^7.0.2" from the root project
+npm warn   11 more (abitype, mipd, ox, viem, wagmi, ox, ox, abitype, @wagmi/core, ...)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peerOptional typescript@"^5.0.0" from @solana/rpc-subscriptions-channel-websocket@5.5.1
+npm warn node_modules/@solana/rpc-subscriptions-channel-websocket
+npm warn   @solana/rpc-subscriptions-channel-websocket@"5.5.1" from @solana/rpc-subscriptions@5.5.1
+npm warn   node_modules/@solana/rpc-subscriptions
+npm warn
+npm warn Conflicting peer dependency: typescript@5.9.3
+npm warn node_modules/typescript
+npm warn   peerOptional typescript@"^5.0.0" from @solana/rpc-subscriptions-channel-websocket@5.5.1
+npm warn   node_modules/@solana/rpc-subscriptions-channel-websocket
+npm warn     @solana/rpc-subscriptions-channel-websocket@"5.5.1" from @solana/rpc-subscriptions@5.5.1
+npm warn     node_modules/@solana/rpc-subscriptions
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: @solana/rpc-subscriptions-spec@5.5.1
+npm warn Found: typescript@7.0.2
+npm warn node_modules/typescript
+npm warn   dev typescript@"^7.0.2" from the root project
+npm warn   11 more (abitype, mipd, ox, viem, wagmi, ox, ox, abitype, @wagmi/core, ...)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peerOptional typescript@"^5.0.0" from @solana/rpc-subscriptions-spec@5.5.1
+npm warn node_modules/@solana/rpc-subscriptions-spec
+npm warn   @solana/rpc-subscriptions-spec@"5.5.1" from @solana/rpc-subscriptions@5.5.1
+npm warn   node_modules/@solana/rpc-subscriptions
+npm warn   2 more (@solana/rpc-subscriptions-api, @solana/rpc-subscriptions-channel-websocket)
+npm warn
+npm warn Conflicting peer dependency: typescript@5.9.3
+npm warn node_modules/typescript
+npm warn   peerOptional typescript@"^5.0.0" from @solana/rpc-subscriptions-spec@5.5.1
+npm warn   node_modules/@solana/rpc-subscriptions-spec
+npm warn     @solana/rpc-subscriptions-spec@"5.5.1" from @solana/rpc-subscriptions@5.5.1
+npm warn     node_modules/@solana/rpc-subscriptions
+npm warn     2 more (@solana/rpc-subscriptions-api, @solana/rpc-subscriptions-channel-websocket)
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: @solana/rpc-transformers@5.5.1
+npm warn Found: typescript@7.0.2
+npm warn node_modules/typescript
+npm warn   dev typescript@"^7.0.2" from the root project
+npm warn   11 more (abitype, mipd, ox, viem, wagmi, ox, ox, abitype, @wagmi/core, ...)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peerOptional typescript@"^5.0.0" from @solana/rpc-transformers@5.5.1
+npm warn node_modules/@solana/rpc-transformers
+npm warn   @solana/rpc-transformers@"5.5.1" from @solana/rpc@5.5.1
+npm warn   node_modules/@solana/rpc
+npm warn   3 more (@solana/rpc-api, @solana/rpc-subscriptions, @solana/rpc-subscriptions-api)
+npm warn
+npm warn Conflicting peer dependency: typescript@5.9.3
+npm warn node_modules/typescript
+npm warn   peerOptional typescript@"^5.0.0" from @solana/rpc-transformers@5.5.1
+npm warn   node_modules/@solana/rpc-transformers
+npm warn     @solana/rpc-transformers@"5.5.1" from @solana/rpc@5.5.1
+npm warn     node_modules/@solana/rpc
+npm warn     3 more (@solana/rpc-api, @solana/rpc-subscriptions, @solana/rpc-subscriptions-api)
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: @solana/rpc-transport-http@5.5.1
+npm warn Found: typescript@7.0.2
+npm warn node_modules/typescript
+npm warn   dev typescript@"^7.0.2" from the root project
+npm warn   11 more (abitype, mipd, ox, viem, wagmi, ox, ox, abitype, @wagmi/core, ...)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peerOptional typescript@"^5.0.0" from @solana/rpc-transport-http@5.5.1
+npm warn node_modules/@solana/rpc-transport-http
+npm warn   @solana/rpc-transport-http@"5.5.1" from @solana/rpc@5.5.1
+npm warn   node_modules/@solana/rpc
+npm warn
+npm warn Conflicting peer dependency: typescript@5.9.3
+npm warn node_modules/typescript
+npm warn   peerOptional typescript@"^5.0.0" from @solana/rpc-transport-http@5.5.1
+npm warn   node_modules/@solana/rpc-transport-http
+npm warn     @solana/rpc-transport-http@"5.5.1" from @solana/rpc@5.5.1
+npm warn     node_modules/@solana/rpc
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: @solana/rpc-types@5.5.1
+npm warn Found: typescript@7.0.2
+npm warn node_modules/typescript
+npm warn   dev typescript@"^7.0.2" from the root project
+npm warn   11 more (abitype, mipd, ox, viem, wagmi, ox, ox, abitype, @wagmi/core, ...)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peerOptional typescript@"^5.0.0" from @solana/rpc-types@5.5.1
+npm warn node_modules/@solana/rpc-types
+npm warn   @solana/rpc-types@"5.5.1" from @solana/accounts@5.5.1
+npm warn   node_modules/@solana/accounts
+npm warn   10 more (@solana/rpc, @solana/rpc-api, ...)
+npm warn
+npm warn Conflicting peer dependency: typescript@5.9.3
+npm warn node_modules/typescript
+npm warn   peerOptional typescript@"^5.0.0" from @solana/rpc-types@5.5.1
+npm warn   node_modules/@solana/rpc-types
+npm warn     @solana/rpc-types@"5.5.1" from @solana/accounts@5.5.1
+npm warn     node_modules/@solana/accounts
+npm warn     10 more (@solana/rpc, @solana/rpc-api, ...)
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: @solana/signers@5.5.1
+npm warn Found: typescript@7.0.2
+npm warn node_modules/typescript
+npm warn   dev typescript@"^7.0.2" from the root project
+npm warn   11 more (abitype, mipd, ox, viem, wagmi, ox, ox, abitype, @wagmi/core, ...)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peerOptional typescript@"^5.0.0" from @solana/signers@5.5.1
+npm warn node_modules/@solana/signers
+npm warn   @solana/signers@"5.5.1" from @solana/kit@5.5.1
+npm warn   node_modules/@solana/kit
+npm warn
+npm warn Conflicting peer dependency: typescript@5.9.3
+npm warn node_modules/typescript
+npm warn   peerOptional typescript@"^5.0.0" from @solana/signers@5.5.1
+npm warn   node_modules/@solana/signers
+npm warn     @solana/signers@"5.5.1" from @solana/kit@5.5.1
+npm warn     node_modules/@solana/kit
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: @solana/subscribable@5.5.1
+npm warn Found: typescript@7.0.2
+npm warn node_modules/typescript
+npm warn   dev typescript@"^7.0.2" from the root project
+npm warn   11 more (abitype, mipd, ox, viem, wagmi, ox, ox, abitype, @wagmi/core, ...)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peerOptional typescript@"^5.0.0" from @solana/subscribable@5.5.1
+npm warn node_modules/@solana/subscribable
+npm warn   @solana/subscribable@"5.5.1" from @solana/rpc-subscriptions@5.5.1
+npm warn   node_modules/@solana/rpc-subscriptions
+npm warn   2 more (@solana/rpc-subscriptions-spec, @solana/rpc-subscriptions-channel-websocket)
+npm warn
+npm warn Conflicting peer dependency: typescript@5.9.3
+npm warn node_modules/typescript
+npm warn   peerOptional typescript@"^5.0.0" from @solana/subscribable@5.5.1
+npm warn   node_modules/@solana/subscribable
+npm warn     @solana/subscribable@"5.5.1" from @solana/rpc-subscriptions@5.5.1
+npm warn     node_modules/@solana/rpc-subscriptions
+npm warn     2 more (@solana/rpc-subscriptions-spec, @solana/rpc-subscriptions-channel-websocket)
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: @solana/sysvars@5.5.1
+npm warn Found: typescript@7.0.2
+npm warn node_modules/typescript
+npm warn   dev typescript@"^7.0.2" from the root project
+npm warn   11 more (abitype, mipd, ox, viem, wagmi, ox, ox, abitype, @wagmi/core, ...)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peerOptional typescript@"^5.0.0" from @solana/sysvars@5.5.1
+npm warn node_modules/@solana/sysvars
+npm warn   @solana/sysvars@"5.5.1" from @solana/kit@5.5.1
+npm warn   node_modules/@solana/kit
+npm warn
+npm warn Conflicting peer dependency: typescript@5.9.3
+npm warn node_modules/typescript
+npm warn   peerOptional typescript@"^5.0.0" from @solana/sysvars@5.5.1
+npm warn   node_modules/@solana/sysvars
+npm warn     @solana/sysvars@"5.5.1" from @solana/kit@5.5.1
+npm warn     node_modules/@solana/kit
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: @solana/transaction-confirmation@5.5.1
+npm warn Found: typescript@7.0.2
+npm warn node_modules/typescript
+npm warn   dev typescript@"^7.0.2" from the root project
+npm warn   11 more (abitype, mipd, ox, viem, wagmi, ox, ox, abitype, @wagmi/core, ...)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peerOptional typescript@"^5.0.0" from @solana/transaction-confirmation@5.5.1
+npm warn node_modules/@solana/transaction-confirmation
+npm warn   @solana/transaction-confirmation@"5.5.1" from @solana/kit@5.5.1
+npm warn   node_modules/@solana/kit
+npm warn
+npm warn Conflicting peer dependency: typescript@5.9.3
+npm warn node_modules/typescript
+npm warn   peerOptional typescript@"^5.0.0" from @solana/transaction-confirmation@5.5.1
+npm warn   node_modules/@solana/transaction-confirmation
+npm warn     @solana/transaction-confirmation@"5.5.1" from @solana/kit@5.5.1
+npm warn     node_modules/@solana/kit
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: @solana/transaction-messages@5.5.1
+npm warn Found: typescript@7.0.2
+npm warn node_modules/typescript
+npm warn   dev typescript@"^7.0.2" from the root project
+npm warn   11 more (abitype, mipd, ox, viem, wagmi, ox, ox, abitype, @wagmi/core, ...)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peerOptional typescript@"^5.0.0" from @solana/transaction-messages@5.5.1
+npm warn node_modules/@solana/transaction-messages
+npm warn   @solana/transaction-messages@"5.5.1" from @solana/instruction-plans@5.5.1
+npm warn   node_modules/@solana/instruction-plans
+npm warn   6 more (@solana/rpc-api, @solana/rpc-subscriptions-api, ...)
+npm warn
+npm warn Conflicting peer dependency: typescript@5.9.3
+npm warn node_modules/typescript
+npm warn   peerOptional typescript@"^5.0.0" from @solana/transaction-messages@5.5.1
+npm warn   node_modules/@solana/transaction-messages
+npm warn     @solana/transaction-messages@"5.5.1" from @solana/instruction-plans@5.5.1
+npm warn     node_modules/@solana/instruction-plans
+npm warn     6 more (@solana/rpc-api, @solana/rpc-subscriptions-api, ...)
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: @solana/transactions@5.5.1
+npm warn Found: typescript@7.0.2
+npm warn node_modules/typescript
+npm warn   dev typescript@"^7.0.2" from the root project
+npm warn   11 more (abitype, mipd, ox, viem, wagmi, ox, ox, abitype, @wagmi/core, ...)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peerOptional typescript@"^5.0.0" from @solana/transactions@5.5.1
+npm warn node_modules/@solana/transactions
+npm warn   @solana/transactions@"5.5.1" from @solana/instruction-plans@5.5.1
+npm warn   node_modules/@solana/instruction-plans
+npm warn   5 more (@solana/rpc-api, @solana/rpc-subscriptions-api, ...)
+npm warn
+npm warn Conflicting peer dependency: typescript@5.9.3
+npm warn node_modules/typescript
+npm warn   peerOptional typescript@"^5.0.0" from @solana/transactions@5.5.1
+npm warn   node_modules/@solana/transactions
+npm warn     @solana/transactions@"5.5.1" from @solana/instruction-plans@5.5.1
+npm warn     node_modules/@solana/instruction-plans
+npm warn     5 more (@solana/rpc-api, @solana/rpc-subscriptions-api, ...)
+npm error code ERESOLVE
+npm error ERESOLVE could not resolve
+npm error
+npm error Found: esbuild@0.25.12
+npm error node_modules/esbuild
+npm error   dev esbuild@"^0.25.0" from the root project
+npm error
+npm error Could not resolve dependency:
+npm error peerOptional esbuild@"^0.27.0 || ^0.28.0" from vite@8.3.4
+npm error node_modules/vite
+npm error   vite@"^8.3.0" from the root project
+npm error   peer vite@"^6.4.0 || ^7.0.0 || ^8.0.0" from vitest@5.0.5
+npm error   node_modules/vitest
+npm error     dev vitest@"5.0.5" from the root project
+npm error   3 more (@tailwindcss/vite, @vitejs/plugin-react, @vitest/mocker)
+npm error
+npm error Conflicting peer dependency: esbuild@0.28.2
+npm error node_modules/tsx/node_modules/esbuild
+npm error   peerOptional esbuild@"^0.27.0 || ^0.28.0" from vite@8.3.4
+npm error   node_modules/vite
+npm error     vite@"^8.3.0" from the root project
+npm error     peer vite@"^6.4.0 || ^7.0.0 || ^8.0.0" from vitest@5.0.5
+npm error     node_modules/vitest
+npm error       dev vitest@"5.0.5" from the root project
+npm error     3 more (@tailwindcss/vite, @vitejs/plugin-react, @vitest/mocker)
+npm error
+npm error Fix the upstream dependency conflict, or retry this command with --force or --legacy-peer-deps to accept an incorrect (and potentially broken) dependency resolution.
+npm error
+npm error
+npm error For a full report see:
+npm error C:\Users\LUSHEGS\AppData\Local\npm-cache\_logs\2026-10-25T17_14_32_585Z-eresolve-report.txt
+npm error A complete log of this run can be found in: C:\Users\LUSHEGS\AppData\Local\npm-cache\_logs\2026-10-25T17_14_32_585Z-debug-0.log

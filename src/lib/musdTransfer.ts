@@ -6,16 +6,16 @@
  * All chain access goes through TransferDeps so this exact code path is what the tests exercise.
  */
 
-import { decodeEventLog, encodeFunctionData, getAddress, isAddress, type Address, type Hex, type Log } from 'viem';
+import { encodeFunctionData, getAddress, isAddress, type Address, type Hex } from 'viem';
 import { erc20Abi } from '../config/abis';
 import type { MezoChainConfig } from '../config/chains';
 import { classifyTxError, TxPreflightError } from './txErrors';
 import { formatTokenDisplay } from './amounts';
 import { phaseFromReceipt, summarizeReceipt, type LedgerEntry, type LedgerPatch, type ReceiptLike, type TxPhase } from './transactions';
 
-export interface ReceiptWithLogs extends ReceiptLike {
-  logs: readonly Pick<Log, 'address' | 'topics' | 'data'>[];
-}
+export type { ReceiptWithLogs } from './receiptEvidence';
+import { receiptHasTransfer, type ReceiptWithLogs } from './receiptEvidence';
+export { receiptHasTransfer } from './receiptEvidence';
 
 export interface TransferDeps {
   getConnection(): { address?: Address; chainId?: number };
@@ -38,8 +38,16 @@ export interface TransferParams {
   amount: bigint;
   memo?: string;
   requestId?: string;
+  requestCreatedAt?: number;
+  requestExpiresAt?: number;
   /** Extra calldata appended after the ABI-encoded args (ignored by the token; used to bind a payment request). */
   dataSuffix?: Hex;
+}
+
+function assertRequestTime(deps: TransferDeps, params: TransferParams) {
+  const now = Math.floor((deps.now ?? Date.now)() / 1000);
+  if (params.requestCreatedAt !== undefined && now < params.requestCreatedAt) throw new TxPreflightError('invalid_input', 'This request is not active yet. Check its creation time.');
+  if (params.requestExpiresAt !== undefined && now >= params.requestExpiresAt) throw new TxPreflightError('invalid_input', 'This request expired before the wallet prompt.');
 }
 
 export interface TransferPreview {
@@ -79,8 +87,9 @@ function assertSameChainAndAccount(deps: TransferDeps, chain: MezoChainConfig, f
 /** Fresh on-chain checks run before the wallet is ever asked to sign. */
 export async function previewTransfer(deps: TransferDeps, p: TransferParams): Promise<TransferPreview> {
   assertSameChainAndAccount(deps, p.chain, p.from);
+  assertRequestTime(deps, p);
   const recipient = validateRecipient(p.chain, p.from, p.recipient);
-  if (p.amount <= 0n) throw new TxPreflightError('invalid_input', 'Amount must be greater than zero.');
+  if (p.amount <= 0n || p.amount >= (1n << 256n)) throw new TxPreflightError('invalid_input', 'Amount must be positive and fit in uint256.');
 
   const musd = p.chain.tokens.MUSD;
   const [musdBalance, btcBalance] = await Promise.all([
@@ -101,26 +110,6 @@ export async function previewTransfer(deps: TransferDeps, p: TransferParams): Pr
     throw new TxPreflightError('insufficient_gas', 'Not enough BTC on this network to pay the network fee.');
   }
   return { recipient, amount: p.amount, gas, estimatedFee: fee, musdBalance, btcBalance };
-}
-
-const sameAddr = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
-
-/** True when the receipt contains the exact MUSD Transfer(from, to, amount) event this transfer should emit. */
-export function receiptHasTransfer(receipt: ReceiptWithLogs, token: Address, from: Address, to: Address, amount: bigint): boolean {
-  return receipt.logs.some((log) => {
-    if (!sameAddr(log.address, token)) return false;
-    try {
-      const ev = decodeEventLog({ abi: erc20Abi, data: log.data, topics: log.topics as [Hex, ...Hex[]] });
-      return (
-        ev.eventName === 'Transfer' &&
-        sameAddr(ev.args.from, from) &&
-        sameAddr(ev.args.to, to) &&
-        ev.args.value === amount
-      );
-    } catch {
-      return false;
-    }
-  });
 }
 
 /**
@@ -144,6 +133,7 @@ export async function executeMusdTransfer(
     preview = await previewTransfer(deps, p);
     // Re-check immediately before prompting: the wallet may have switched while we were estimating.
     assertSameChainAndAccount(deps, p.chain, p.from);
+    assertRequestTime(deps, p);
   } catch (err) {
     const c = classifyTxError(err);
     return finish({ phase: 'failed', code: c.code, message: c.message });

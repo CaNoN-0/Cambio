@@ -12,6 +12,7 @@
  */
 
 import type { Address, Hex } from 'viem';
+import { ledgerReceiptStatus, type ReceiptWithLogs } from './receiptEvidence';
 import type { TxErrorCode } from './txErrors';
 
 export interface ReceiptSummary {
@@ -83,6 +84,13 @@ export function ledgerKey(chainId: number, address: string): string {
 
 function isLedgerEntry(x: unknown): x is LedgerEntry {
   const e = x as LedgerEntry;
+  const validSwap = !e?.swap || (
+    typeof e.swap.tokenOut === 'string' && ADDR_RE.test(e.swap.tokenOut) &&
+    typeof e.swap.symbolOut === 'string' && e.swap.symbolOut.length > 0 && e.swap.symbolOut.length <= 20 &&
+    Number.isInteger(e.swap.decimalsOut) && e.swap.decimalsOut >= 0 && e.swap.decimalsOut <= 36 &&
+    typeof e.swap.minAmountOut === 'string' && /^[1-9]\d{0,77}$/.test(e.swap.minAmountOut) &&
+    (e.swap.amountOut === undefined || (typeof e.swap.amountOut === 'string' && /^\d{1,78}$/.test(e.swap.amountOut)))
+  );
   return (
     !!e &&
     e.mode === 'real' &&
@@ -92,9 +100,14 @@ function isLedgerEntry(x: unknown): x is LedgerEntry {
     typeof e.from === 'string' && ADDR_RE.test(e.from) &&
     typeof e.to === 'string' && ADDR_RE.test(e.to) &&
     typeof e.token === 'string' && ADDR_RE.test(e.token) &&
-    typeof e.amount === 'string' && /^\d+$/.test(e.amount) &&
+    typeof e.amount === 'string' && /^\d{1,78}$/.test(e.amount) &&
+    (e.memo === undefined || (typeof e.memo === 'string' && e.memo.length <= 140)) &&
+    typeof e.symbol === 'string' && e.symbol.length > 0 && e.symbol.length <= 20 &&
+    Number.isInteger(e.decimals) && e.decimals >= 0 && e.decimals <= 36 && validSwap &&
+    (e.kind !== 'swap' || !!e.swap) &&
     ['pending', 'confirmed', 'reverted', 'unknown'].includes(e.status) &&
-    typeof e.submittedAt === 'number'
+    Number.isSafeInteger(e.submittedAt) && e.submittedAt >= 0 &&
+    (e.blockTimestamp == null || (Number.isSafeInteger(e.blockTimestamp) && e.blockTimestamp >= 0))
   );
 }
 
@@ -116,7 +129,7 @@ export function readLedger(chainId: number, address: string, store = defaultStor
   try {
     const parsed = JSON.parse(store.getItem(ledgerKey(chainId, address)) || '[]');
     return Array.isArray(parsed)
-      ? parsed.filter(isLedgerEntry).filter((e) => e.chainId === chainId && e.from.toLowerCase() === address.toLowerCase())
+      ? parsed.filter(isLedgerEntry).filter((e) => e.chainId === chainId && e.from.toLowerCase() === address.toLowerCase()).slice(0, MAX_LEDGER_ENTRIES)
       : [];
   } catch {
     return [];
@@ -175,18 +188,22 @@ export function phaseFromReceipt(hash: Hex, receipt: ReceiptSummary): TxPhase {
  */
 export async function reconcileLedger(
   entries: LedgerEntry[],
-  getReceipt: (hash: Hex) => Promise<ReceiptLike | null>,
+  getReceipt: (hash: Hex) => Promise<(ReceiptLike & { logs?: ReceiptWithLogs['logs'] }) | null>,
   onUpdate: (hash: Hex, status: LedgerStatus, receipt: ReceiptLike | null) => void
 ): Promise<void> {
-  const open = entries.filter((e) => e.status === 'pending' || e.status === 'unknown');
+  const open = entries.filter((e) => e.status !== 'reverted');
   await Promise.all(
     open.map(async (e) => {
       try {
         const receipt = await getReceipt(e.hash);
-        if (!receipt) return; // still pending; leave as-is
-        onUpdate(e.hash, receipt.status === 'success' ? 'confirmed' : 'reverted', receipt);
+        if (!receipt) {
+          if (e.status === 'confirmed') onUpdate(e.hash, 'unknown', null);
+          return;
+        }
+        onUpdate(e.hash, ledgerReceiptStatus(e, receipt), receipt);
       } catch {
         // RPC failure: keep the previous status rather than guessing.
+        if (e.status === 'confirmed') onUpdate(e.hash, 'unknown', null);
       }
     })
   );

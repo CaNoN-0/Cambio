@@ -1,0 +1,10 @@
+npm warn deprecated json-ptr@3.1.1: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+npm warn deprecated uuid@9.0.1: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+npm error code ENOENT
+npm error syscall stat
+npm error path C:\Users\LUSHEGS\AppData\Local\npm-cache\_cacache\content-v2\sha512\d3\40\ac0b72692f73a042732481e3c0c016a1e6cef63ac55adc76779b43beb50440b512d1d696a98f4fce9806addad6ec499edac633b398f933d274fd9372b05f
+npm error errno ENOENT
+npm error enoent Invalid response body while trying to fetch https://registry.npmjs.org/vary: ENOENT: no such file or directory, stat 'C:\Users\LUSHEGS\AppData\Local\npm-cache\_cacache\content-v2\sha512\d3\40\ac0b72692f73a042732481e3c0c016a1e6cef63ac55adc76779b43beb50440b512d1d696a98f4fce9806addad6ec499edac633b398f933d274fd9372b05f'
+npm error enoent This is related to npm not being able to find a file.
+npm error enoent
+npm error A complete log of this run can be found in: C:\Users\LUSHEGS\AppData\Local\npm-cache\_logs\2026-10-25T17_53_02_623Z-debug-0.log

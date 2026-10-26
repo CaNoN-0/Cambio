@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { X, Check, Loader2, AlertCircle, ShieldCheck, ServerCrash } from 'lucide-react';
 import { signMessage } from 'wagmi/actions';
 import type { Address } from 'viem';
@@ -30,6 +30,9 @@ export const UsernameModal: React.FC<UsernameModalProps> = ({ isOpen, onClose, w
   const [availability, setAvailability] = useState<Availability>({ state: 'idle' });
   const [step, setStep] = useState<'form' | 'challenge' | 'signing' | 'verifying' | 'done'>('form');
   const [error, setError] = useState<string | null>(null);
+  const active = useRef(true);
+  const submitting = useRef(false);
+  useEffect(() => { active.current = true; return () => { active.current = false; }; }, []);
 
   // Reset only when the dialog opens. (Resetting on currentUsername changes would wipe the success
   // confirmation the moment the app learns about the newly verified name.)
@@ -79,6 +82,7 @@ export const UsernameModal: React.FC<UsernameModalProps> = ({ isOpen, onClose, w
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting.current) return;
     setError(null);
     const v = validateUsername(normalized);
     if (!v.valid) return setError(v.error);
@@ -86,6 +90,7 @@ export const UsernameModal: React.FC<UsernameModalProps> = ({ isOpen, onClose, w
     if (!chainId) return setError('Connect to a supported network first.');
 
     try {
+      submitting.current = true;
       setStep('challenge');
       const challenge = await requestChallenge({ address: walletAddress, chainId, action: mode === 'change' ? 'change' : 'register', username: v.username });
       setStep('signing');
@@ -93,8 +98,10 @@ export const UsernameModal: React.FC<UsernameModalProps> = ({ isOpen, onClose, w
       setStep('verifying');
       const { record } = await submitClaim({ nonce: challenge.nonce, signature });
       notifyUsernameChanged(record.address, record.username);
+      if (!active.current) return;
       setStep('done');
       setTimeout(() => {
+        if (!active.current) return;
         onSuccess(record.username);
         onClose();
       }, 900);
@@ -103,6 +110,8 @@ export const UsernameModal: React.FC<UsernameModalProps> = ({ isOpen, onClose, w
       if (err instanceof IdentityApiError) return setError(err.message);
       const c = classifyTxError(err);
       setError(c.code === 'rejected' ? 'Signature request was declined. Your username was not changed.' : 'Something went wrong. Your username was not changed.');
+    } finally {
+      submitting.current = false;
     }
   };
 

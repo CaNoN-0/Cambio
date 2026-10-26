@@ -65,6 +65,8 @@ describe('executeMusdTransfer — nothing is sent when preflight fails', () => {
     ['insufficient MUSD', { readTokenBalance: async () => ONE }, {}, 'insufficient_token'],
     ['insufficient BTC for gas', { readNativeBalance: async () => 0n }, {}, 'insufficient_gas'],
     ['zero amount', {}, { amount: 0n }, 'invalid_input'],
+    ['negative amount', {}, { amount: -1n }, 'invalid_input'],
+    ['amount over uint256', {}, { amount: 1n << 256n }, 'invalid_input'],
     ['invalid recipient', {}, { recipient: '0x1234' }, 'invalid_input'],
     ['zero address', {}, { recipient: '0x0000000000000000000000000000000000000000' }, 'invalid_input'],
     ['sending to the token contract', {}, { recipient: MUSD }, 'invalid_input'],
@@ -86,6 +88,13 @@ describe('executeMusdTransfer — nothing is sent when preflight fails', () => {
     const { deps } = makeDeps({ getConnection: () => ({ address: ALICE, chainId: calls++ === 0 ? 31611 : 31612 }) });
     const { final } = await run(deps);
     expect(final).toMatchObject({ phase: 'failed', code: 'wrong_chain' });
+    expect(deps.sendTransfer).not.toHaveBeenCalled();
+  });
+  it('rechecks signed-request expiry after preflight before opening the wallet', async () => {
+    let time = 1000;
+    const { deps } = makeDeps({ now: () => time, estimateFee: async () => { time = 3000; return { gas: 1n, fee: 1n }; } });
+    const { final } = await run(deps, params({ requestCreatedAt: 1, requestExpiresAt: 2 }));
+    expect(final).toMatchObject({ phase: 'failed', code: 'invalid_input', message: expect.stringMatching(/expired/) });
     expect(deps.sendTransfer).not.toHaveBeenCalled();
   });
 });

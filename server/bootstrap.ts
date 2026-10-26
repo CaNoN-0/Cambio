@@ -20,11 +20,13 @@ import path from 'node:path';
 import { IdentityService } from './identity/service';
 import { MemoryIdentityStore } from './identity/memoryStore';
 import type { IdentityStore } from './identity/store';
+import type { SharedRateLimitStore } from './rateLimit';
 
 export interface IdentityBootstrap {
   identity: IdentityService | null;
   error?: string;
   store?: IdentityStore['kind'];
+  rateLimitStore?: SharedRateLimitStore;
 }
 
 function appletConfig(): { projectId?: string; firestoreDatabaseId?: string } {
@@ -53,10 +55,11 @@ export async function createFirestoreStore(env: NodeJS.ProcessEnv) {
   const app = getApps().find((a) => a.name === 'cambio-identity') ?? initializeApp({ projectId }, 'cambio-identity');
   const databaseId = env.FIRESTORE_DATABASE_ID || cfg.firestoreDatabaseId;
   const db = databaseId ? getFirestore(app, databaseId) : getFirestore(app);
-  return new FirestoreIdentityStore(db);
+  return new FirestoreIdentityStore(db, !env.FIRESTORE_EMULATOR_HOST);
 }
 
 export async function bootstrapIdentity(env: NodeJS.ProcessEnv = process.env, mode: 'production' | 'development' = 'production'): Promise<IdentityBootstrap> {
+  if (mode === 'production' && env.FIRESTORE_EMULATOR_HOST && env.ALLOW_NON_DURABLE_IDENTITY !== 'true') return { identity: null, error: 'Firestore emulator is not durable production identity storage.' };
   const hasFirestore = !!(env.FIRESTORE_EMULATOR_HOST || env.GOOGLE_APPLICATION_CREDENTIALS || env.K_SERVICE);
   const requested = env.IDENTITY_STORE || (mode === 'production' || hasFirestore ? 'firestore' : 'memory');
 
@@ -72,7 +75,7 @@ export async function bootstrapIdentity(env: NodeJS.ProcessEnv = process.env, mo
 
   try {
     const store = await createFirestoreStore(env);
-    return { identity: new IdentityService({ store }), store: 'firestore' };
+    return { identity: new IdentityService({ store }), store: 'firestore', rateLimitStore: store };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error('[identity] Firestore store could not be initialised:', message);

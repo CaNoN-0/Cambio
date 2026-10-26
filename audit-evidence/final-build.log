@@ -1,0 +1,166 @@
+
+> cambio@0.2.0 build
+> vite build && npm run build:server
+
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - import "./server/app" without a file extension (vite.config.ts:15:45). Add the file extension
+  - import "./server/bootstrap" without a file extension (vite.config.ts:16:50). Add the file extension
+  - import "./identity/service" without a file extension (server/bootstrap.ts:20:33). Add the file extension
+  - import "./identity/service" without a file extension (server/app.ts:10:91). Add the file extension
+  - import "./identity/memoryStore" without a file extension (server/bootstrap.ts:21:37). Add the file extension
+  - import "./rateLimit" without a file extension (server/app.ts:11:54). Add the file extension
+  - import "./identity/store" without a file extension (server/bootstrap.ts:22:36). Add the file extension
+  - import "./rateLimit" without a file extension (server/bootstrap.ts:23:43). Add the file extension
+  - import "./identity/firestoreStore" without a file extension (server/bootstrap.ts:43:51). Add the file extension
+  - import "../../src/config/chains" without a file extension (server/identity/service.ts:18:44). Add the file extension
+  - import "../../shared/username" without a file extension (server/identity/service.ts:19:50). Add the file extension
+  - import "./store" without a file extension (server/identity/memoryStore.ts:10:111). Add the file extension
+  - import "../../shared/username" without a file extension (server/identity/firestoreStore.ts:20:34). Add the file extension
+  - import "./store" without a file extension (server/identity/service.ts:20:98). Add the file extension
+  - import "./store" without a file extension (server/identity/firestoreStore.ts:21:134). Add the file extension
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+vite v8.3.4 building client environment for production...
+transforming...
+✓ 5196 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                          1.66 kB │ gzip:   0.67 kB
+dist/assets/mezo-D5IGVefH.png                            4.90 kB
+dist/assets/btc-Be3yvovb.png                            33.02 kB
+dist/assets/usdc-CCLwHw6D.png                           51.52 kB
+dist/assets/logo-Dh89c3oB.png                           69.09 kB
+dist/assets/mockup-CfYg3IZZ.png                        156.61 kB
+dist/assets/appEntry-DEsjPnV4.css                       71.31 kB │ gzip:  12.72 kB
+dist/assets/wui-icon-DlJkW8iS.js                         0.03 kB │ gzip:   0.05 kB
+dist/assets/wui-image-Dn6r26_R.js                        0.03 kB │ gzip:   0.05 kB
+dist/assets/wui-shimmer-CogOkN7N.js                      0.03 kB │ gzip:   0.05 kB
+dist/assets/wui-icon-box-CQdzjE5j.js                     0.03 kB │ gzip:   0.05 kB
+dist/assets/wui-input-text-qKls07vI.js                   0.03 kB │ gzip:   0.05 kB
+dist/assets/wui-loading-spinner-Cx0NYvNW.js              0.04 kB │ gzip:   0.06 kB
+dist/assets/NavigationUtil-CLCRNDHF.js                   0.06 kB │ gzip:   0.08 kB
+dist/assets/connectors-o7mU6czq.js                       0.10 kB │ gzip:   0.11 kB
+dist/assets/MathUtil-B2UslVSw.js                         0.22 kB │ gzip:   0.18 kB
+dist/assets/ConstantsUtil-C1qdKpER.js                    0.45 kB │ gzip:   0.33 kB
+dist/assets/AlertController-Dz6P2dnE.js                  0.59 kB │ gzip:   0.38 kB
+dist/assets/transactions-BncTOEGV.js                     0.93 kB │ gzip:   0.56 kB
+dist/assets/rolldown-runtime-DLMaRju-.js                 0.96 kB │ gzip:   0.53 kB
+dist/assets/wui-email-input-BmdExpvV.js                  1.27 kB │ gzip:   0.67 kB
+dist/assets/wui-separator-DpLFPW9n.js                    1.46 kB │ gzip:   0.73 kB
+dist/assets/wui-shimmer-JDTD77lg.js                      1.49 kB │ gzip:   0.73 kB
+dist/assets/ref-B3Re4TfP.js                              1.84 kB │ gzip:   0.87 kB
+dist/assets/PhCaretLeft-CI460R-A.js                      1.85 kB │ gzip:   0.90 kB
+dist/assets/PhCaretDown-BDNabFuL.js                      1.91 kB │ gzip:   0.93 kB
+dist/assets/PhCaretRight-D7ZS3Ls8.js                     1.93 kB │ gzip:   0.92 kB
+dist/assets/PhCaretUp-C-iIfyvO.js                        1.99 kB │ gzip:   0.91 kB
+dist/assets/PhArrowUpRight-BNghD2zq.js                   2.03 kB │ gzip:   0.99 kB
+dist/assets/ConstantsUtil-BmGn854L.js                    2.06 kB │ gzip:   0.76 kB
+dist/assets/PhArrowDown-87b1BizM.js                      2.07 kB │ gzip:   0.99 kB
+dist/assets/PhPlus-C4UoW-2n.js                           2.08 kB │ gzip:   0.94 kB
+dist/assets/PhCheck-DxQXn57r.js                          2.08 kB │ gzip:   0.96 kB
+dist/assets/PhArrowRight-AdrIL4DW.js                     2.08 kB │ gzip:   0.99 kB
+dist/assets/PhArrowLeft-Da0MfnbK.js                      2.09 kB │ gzip:   0.98 kB
+dist/assets/PhArrowUp-4sgyKPGx.js                        2.14 kB │ gzip:   0.98 kB
+dist/assets/PhBrowser-2-9m-AkM.js                        2.18 kB │ gzip:   0.95 kB
+dist/assets/PhMagnifyingGlass-C9u8jSCJ.js                2.18 kB │ gzip:   1.05 kB
+dist/assets/utils-Bpv4vmSW.js                            2.19 kB │ gzip:   0.97 kB
+dist/assets/PhDotsThree-D-k1BiYg.js                      2.22 kB │ gzip:   0.92 kB
+dist/assets/EnsController-Ci5vcp1b.js                    2.24 kB │ gzip:   1.00 kB
+dist/assets/PhCopy-CWNYcABI.js                           2.33 kB │ gzip:   0.99 kB
+dist/assets/PhFunnelSimple-CfQs5DAW.js                   2.33 kB │ gzip:   0.98 kB
+dist/assets/PhClock-x3MS3Mwi.js                          2.34 kB │ gzip:   1.01 kB
+dist/assets/PhWarningCircle-BXHw1fCt.js                  2.40 kB │ gzip:   1.03 kB
+dist/assets/wui-avatar-CieHS3Oj.js                       2.43 kB │ gzip:   1.01 kB
+dist/assets/PhX-DX0SFIqC.js                              2.47 kB │ gzip:   1.04 kB
+dist/assets/PhDeviceMobile-CsyA5Goi.js                   2.54 kB │ gzip:   1.05 kB
+dist/assets/OnRampController-SLb3l4Jw.js                 2.55 kB │ gzip:   1.14 kB
+dist/assets/PhArrowClockwise-DVgyFuez.js                 2.56 kB │ gzip:   1.17 kB
+dist/assets/PhUser-0sWNXQeZ.js                           2.65 kB │ gzip:   1.25 kB
+dist/assets/PhEnvelope-D8kzeNox.js                       2.66 kB │ gzip:   1.16 kB
+dist/assets/PhCircleHalf-MJZeRBGF.js                     2.69 kB │ gzip:   1.20 kB
+dist/assets/wui-icon-link-BAOZJOsG.js                    2.72 kB │ gzip:   0.97 kB
+dist/assets/PhSignOut-CxELV-i0.js                        2.73 kB │ gzip:   1.14 kB
+dist/assets/PhInfo-Bwi51-2X.js                           2.74 kB │ gzip:   1.19 kB
+dist/assets/PhPower-CFyWDmgD.js                          2.75 kB │ gzip:   1.26 kB
+dist/assets/PhDesktop-CxrzCSv5.js                        2.75 kB │ gzip:   1.09 kB
+dist/assets/PhArrowsLeftRight-MuKBLUoF.js                2.77 kB │ gzip:   1.16 kB
+dist/assets/PhArrowCircleDown-D97G-BOA.js                2.78 kB │ gzip:   1.16 kB
+dist/assets/PhWallet-DzNiREN9.js                         2.80 kB │ gzip:   1.15 kB
+dist/assets/PhQuestionMark-CV0k9C0Y.js                   2.81 kB │ gzip:   1.28 kB
+dist/assets/eventemitter3-Byw6l73S.js                    2.82 kB │ gzip:   1.08 kB
+dist/assets/wui-icon-box-D5Yb_vl5.js                     2.87 kB │ gzip:   0.94 kB
+dist/assets/PhArrowSquareOut-Bk2CMG3I.js                 2.89 kB │ gzip:   1.23 kB
+dist/assets/PhArrowsDownUp-DM09Jo_3.js                   2.90 kB │ gzip:   1.15 kB
+dist/assets/PhCreditCard-Fy4pzwtt.js                     2.90 kB │ gzip:   1.13 kB
+dist/assets/PhBank-fHbgCqqZ.js                           2.91 kB │ gzip:   1.23 kB
+dist/assets/wui-link-D0q8ZXzm.js                         2.93 kB │ gzip:   0.99 kB
+dist/assets/PhVault-6JTskUcC.js                          2.93 kB │ gzip:   1.18 kB
+dist/assets/PhCompass-hYn3HhGN.js                        2.95 kB │ gzip:   1.25 kB
+dist/assets/wui-image-BG68SCRL.js                        3.01 kB │ gzip:   1.16 kB
+dist/assets/PhPaperPlaneRight-zxQVvPLX.js                3.06 kB │ gzip:   1.40 kB
+dist/assets/PhTrash-C9PD0SAt.js                          3.09 kB │ gzip:   1.17 kB
+dist/assets/HelpersUtil-BHZzttHY.js                      3.18 kB │ gzip:   1.30 kB
+dist/assets/PhCurrencyDollar-BgiaenCi.js                 3.22 kB │ gzip:   1.32 kB
+dist/assets/PhQuestion-wOWJBd3G.js                       3.28 kB │ gzip:   1.43 kB
+dist/assets/PhImage-Cf0J2ZfJ.js                          3.40 kB │ gzip:   1.43 kB
+dist/assets/wui-list-token-BypF1Txu.js                   3.52 kB │ gzip:   1.31 kB
+dist/assets/wui-list-item-D_8t6Zx8.js                    3.66 kB │ gzip:   1.28 kB
+dist/assets/PhArrowsClockwise-BXRn1GEl.js                3.84 kB │ gzip:   1.57 kB
+dist/assets/createConnector-BkFS4Y8G.js                  3.85 kB │ gzip:   1.26 kB
+dist/assets/PhWarning-CoKs3gz6.js                        3.88 kB │ gzip:   1.47 kB
+dist/assets/wui-input-amount-DbslwOqC.js                 4.01 kB │ gzip:   1.51 kB
+dist/assets/PhIdentificationCard-CfkZm-5K.js             4.19 kB │ gzip:   1.63 kB
+dist/assets/PhSpinner-CGDmbzUd.js                        4.42 kB │ gzip:   1.63 kB
+dist/assets/wui-token-button-9Qx1nJgH.js                 4.65 kB │ gzip:   1.43 kB
+dist/assets/wui-loading-spinner-BDDACy6v.js              4.76 kB │ gzip:   1.97 kB
+dist/assets/w3m-onramp-providers-footer-Cy7YM0Gp.js      4.84 kB │ gzip:   1.73 kB
+dist/assets/index-C9nxjaab.js                            4.88 kB │ gzip:   2.37 kB
+dist/assets/PhLightbulb-C4FZV7Es.js                      4.88 kB │ gzip:   1.84 kB
+dist/assets/PhQrCode-CP3tFauY.js                         4.89 kB │ gzip:   1.46 kB
+dist/assets/PhPuzzlePiece-BjoNVfST.js                    5.34 kB │ gzip:   1.94 kB
+dist/assets/w3m-tooltip-BlTG3v4P.js                      5.47 kB │ gzip:   1.88 kB
+dist/assets/wui-button-D9qnKH06.js                       5.60 kB │ gzip:   1.51 kB
+dist/assets/PhGlobe-DvmSc9_A.js                          5.69 kB │ gzip:   1.91 kB
+dist/assets/features-B3DXgje5.js                         5.82 kB │ gzip:   2.29 kB
+dist/assets/events-BMpYyskR.js                           6.06 kB │ gzip:   2.07 kB
+dist/assets/wui-input-text-1d26CEOI.js                   6.19 kB │ gzip:   1.91 kB
+dist/assets/receive-DmN6EYsq.js                          6.49 kB │ gzip:   2.31 kB
+dist/assets/wui-loading-thumbnail-CP-aDJDy.js            7.69 kB │ gzip:   2.32 kB
+dist/assets/ExchangeController-Bo6grZSx.js               8.08 kB │ gzip:   3.10 kB
+dist/assets/exports-DQfofILV.js                          8.69 kB │ gzip:   2.31 kB
+dist/assets/esm-X8Fb2-Vb.js                              9.14 kB │ gzip:   2.94 kB
+dist/assets/w3m-email-otp-widget-BuvQkgG5.js             9.65 kB │ gzip:   3.13 kB
+dist/assets/email-BIvVy29t.js                           10.50 kB │ gzip:   2.80 kB
+dist/assets/wui-wallet-switch-DXX1suVH.js               11.09 kB │ gzip:   3.56 kB
+dist/assets/PhSealCheck-vIKzREuN.js                     12.07 kB │ gzip:   4.06 kB
+dist/assets/data-capture-Dx2SZdyM.js                    12.70 kB │ gzip:   3.69 kB
+dist/assets/SwapController-iJaBoVKZ.js                  14.19 kB │ gzip:   4.05 kB
+dist/assets/pay-with-exchange-VaMeIxhj.js               15.73 kB │ gzip:   4.08 kB
+dist/assets/property-DuZ9DLP4.js                        16.17 kB │ gzip:   6.08 kB
+dist/assets/wui-list-wallet-DU0W2gmF.js                 17.02 kB │ gzip:   4.32 kB
+dist/assets/socials-Dg5PkaS9.js                         17.94 kB │ gzip:   4.71 kB
+dist/assets/embedded-wallet-CR8Bhdsr.js                 23.37 kB │ gzip:   6.01 kB
+dist/assets/onramp-PXffHc0a.js                          23.58 kB │ gzip:   5.57 kB
+dist/assets/wui-qr-code-DvL0iEt_.js                     29.03 kB │ gzip:  10.93 kB
+dist/assets/secp256k1-CIL9KlGG.js                       29.93 kB │ gzip:  11.95 kB
+dist/assets/send-gz4E-8KB.js                            33.22 kB │ gzip:   7.55 kB
+dist/assets/w3m-activity-list-DhxN90T9.js               34.65 kB │ gzip:  10.37 kB
+dist/assets/wui-visual-BYGEjwiG.js                      45.96 kB │ gzip:  14.08 kB
+dist/assets/w3m-modal-CG_BRqaH.js                       47.27 kB │ gzip:  10.59 kB
+dist/assets/swaps-2eM93r3d.js                           55.25 kB │ gzip:  10.07 kB
+dist/assets/exports-BHCfA96t.js                         77.44 kB │ gzip:  16.76 kB
+dist/assets/wui-list-social-GwlPGSHK.js                 87.43 kB │ gzip:  21.43 kB
+dist/assets/wui-text-KALyvC3K.js                        97.65 kB │ gzip:  30.91 kB
+dist/assets/ccip-DaMmeE-3.js                           110.46 kB │ gzip:  31.49 kB
+dist/assets/_esm-BzAMwFEy.js                           126.88 kB │ gzip:  38.47 kB
+dist/assets/ApiController-C5rKoGJ1.js                  146.98 kB │ gzip:  44.30 kB
+dist/assets/exports-DNerthXg.js                        230.88 kB │ gzip:  47.85 kB
+dist/assets/dist-C-Ad6iSK.js                           340.91 kB │ gzip: 105.88 kB
+dist/assets/SIWXUtil-C9mbmwAv.js                       469.11 kB │ gzip: 143.79 kB
+dist/assets/dist-BSxumwgn.js                           621.13 kB │ gzip: 161.74 kB
+dist/assets/appEntry-tAXkpPk4.js                     1,235.14 kB │ gzip: 329.15 kB
+
+✓ built in 4.65s
+
+> cambio@0.2.0 build:server
+> node scripts/build-server.mjs
+

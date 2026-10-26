@@ -1,0 +1,16 @@
+
+> cambio@0.2.0 test
+> vitest run
+
+
+ RUN  v5.0.5 C:/Users/LUSHEGS/Documents/Codex/2026-10-25/you-re-a-principal-software-engineer/work/Cambio
+
+
+ Test Files  12 passed (12)
+      Tests  143 passed (143)
+   Start at  19:08:16
+   Duration  16.98s (import 50%, environment 24%, tests 22%, transform 4%)
+
+    Isolate  12 workers spawned · ~1.82s startup each (spawn + environment, per file)
+             at least ~1.30s faster with isolate: false — reuses workers across files instead of one per file
+

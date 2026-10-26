@@ -1,0 +1,6 @@
+
+> cambio@0.2.0 verify:chain
+> tsx scripts/verify-contracts.ts
+
+'C:\Users\LUSHEGS\Documents\Codex\2026-10-25\you-re-a-principal-software-engineer\work\Cambio\node_modules\.bin\tsx.exe' was blocked by your organization's Device Guard policy.
+Contact your support person for more info.

@@ -30,6 +30,21 @@ beforeAll(async () => {
 afterAll(async () => app && deleteApp(app));
 
 describe('FirestoreIdentityStore.commitClaim', () => {
+  it('shares rate limits atomically across independent server instances', async () => {
+    const other = new FirestoreIdentityStore(getFirestore(app));
+    const key = `mutation:rate-test-${Date.now()}`;
+    const attempts = await Promise.all(Array.from({ length: 6 }, (_, i) => (i % 2 ? store : other).consume(key, 3, 60000, now)));
+    expect(attempts.filter((r) => r.allowed)).toHaveLength(3);
+    expect((await other.consume(key, 3, 60000, now + 60000)).allowed).toBe(true);
+  });
+
+  it('does not promote unsigned or mis-keyed database records to verified identities', async () => {
+    const db = getFirestore(app);
+    await db.collection(COLLECTIONS.usernames).doc('unsigned_name').set({ username: 'unsigned_name', address: addr(999), proof: 'unsigned' });
+    expect(await store.getByUsername('unsigned_name')).toBeNull();
+    await db.collection(COLLECTIONS.usernames).doc('wrong_name').set({ username: 'other_name', address: addr(999), proof: 'siwe' });
+    expect(await store.getByUsername('wrong_name')).toBeNull();
+  });
   it('lets exactly one of many concurrent wallets claim the same username', async () => {
     const contenders = Array.from({ length: 8 }, (_, i) => ({ nonce: `race${i}nonce`, address: addr(i + 1) }));
     await Promise.all(contenders.map((c) => store.saveChallenge(challenge(c.nonce, c.address, 'hot_name'))));

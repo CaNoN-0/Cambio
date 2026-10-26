@@ -8,7 +8,7 @@
 
 import express, { type NextFunction, type Request, type Response } from 'express';
 import { IdentityError, IdentityService, StoreUnavailableError, type OriginContext } from './identity/service';
-import { rateLimit } from './rateLimit';
+import { rateLimit, type SharedRateLimitStore } from './rateLimit';
 
 export interface AppOptions {
   /** Null when the identity store could not be initialised; identity routes then answer 503. */
@@ -20,6 +20,7 @@ export interface AppOptions {
   /** Canonical public origin (e.g. APP_URL). When unset, the request's own host is used for SIWE binding. */
   publicOrigin?: string;
   rateLimits?: { lookupPerMinute?: number; mutatePerMinute?: number };
+  rateLimitStore?: SharedRateLimitStore;
 }
 
 export function createApiApp(opts: AppOptions) {
@@ -33,6 +34,11 @@ export function createApiApp(opts: AppOptions) {
     res.setHeader('Cache-Control', 'no-store');
     res.setHeader('X-Content-Type-Options', 'nosniff');
     const origin = req.headers.origin;
+    const ownOrigin = opts.publicOrigin ?? `${req.protocol}://${req.get('host')}`;
+    if (origin && origin !== ownOrigin && !allowed.has(origin)) {
+      res.status(403).json({ error: 'origin_not_allowed' });
+      return;
+    }
     if (origin && allowed.has(origin)) {
       res.setHeader('Access-Control-Allow-Origin', origin);
       res.setHeader('Vary', 'Origin');
@@ -48,8 +54,8 @@ export function createApiApp(opts: AppOptions) {
 
   app.use('/api', express.json({ limit: '4kb', strict: true, type: 'application/json' }));
 
-  const lookupLimit = rateLimit({ name: 'lookup', windowMs: 60_000, max: opts.rateLimits?.lookupPerMinute ?? 120 });
-  const mutateLimit = rateLimit({ name: 'mutate', windowMs: 60_000, max: opts.rateLimits?.mutatePerMinute ?? 10 });
+  const lookupLimit = rateLimit({ name: 'lookup', windowMs: 60_000, max: opts.rateLimits?.lookupPerMinute ?? 120, store: opts.rateLimitStore });
+  const mutateLimit = rateLimit({ name: 'mutate', windowMs: 60_000, max: opts.rateLimits?.mutatePerMinute ?? 10, store: opts.rateLimitStore });
 
   const requireIdentity = (_req: Request, res: Response, next: NextFunction) => {
     if (!opts.identity) {

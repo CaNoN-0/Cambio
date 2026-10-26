@@ -15,6 +15,9 @@
  */
 
 import type { DocumentData, DocumentReference, Firestore } from 'firebase-admin/firestore';
+import { createHash } from 'node:crypto';
+import { isAddress } from 'viem';
+import { validateUsername } from '../../shared/username';
 import { decideClaim, StoreUnavailableError, type ChallengeRecord, type CommitResult, type IdentityStore, type UsernameRecord } from './store';
 
 export const COLLECTIONS = {
@@ -24,7 +27,7 @@ export const COLLECTIONS = {
 } as const;
 
 function asUsernameRecord(data: DocumentData | undefined): UsernameRecord | null {
-  if (!data || typeof data.username !== 'string' || typeof data.address !== 'string') return null;
+  if (!data || data.proof !== 'siwe' || typeof data.username !== 'string' || !validateUsername(data.username).valid || typeof data.address !== 'string' || !isAddress(data.address, { strict: false })) return null;
   return {
     username: data.username,
     address: data.address,
@@ -68,8 +71,19 @@ async function guard<T>(fn: () => Promise<T>): Promise<T> {
 
 export class FirestoreIdentityStore implements IdentityStore {
   readonly kind = 'firestore' as const;
-  readonly durable = true;
-  constructor(private readonly db: Firestore) {}
+  constructor(private readonly db: Firestore, readonly durable = true) {}
+
+  async consume(key: string, max: number, windowMs: number, now: number) {
+    const ref = this.db.collection('identity_rate_limits').doc(createHash('sha256').update(key).digest('hex'));
+    return guard(() => this.db.runTransaction(async (tx) => {
+      const saved = (await tx.get(ref)).data();
+      const active = saved && saved.resetAt > now;
+      const count = active ? Number(saved.count) + 1 : 1;
+      const resetAt = active ? Number(saved.resetAt) : now + windowMs;
+      if (count <= max) tx.set(ref, { count, resetAt, expiresAt: new Date(resetAt) });
+      return { allowed: count <= max, retryAfter: Math.max(1, Math.ceil((resetAt - now) / 1000)) };
+    }));
+  }
 
   async ping() {
     await guard(() => this.db.collection(COLLECTIONS.usernames).limit(1).get());
@@ -84,7 +98,10 @@ export class FirestoreIdentityStore implements IdentityStore {
   }
 
   async getByUsername(username: string) {
-    return guard(async () => asUsernameRecord((await this.db.collection(COLLECTIONS.usernames).doc(username).get()).data()));
+    return guard(async () => {
+      const record = asUsernameRecord((await this.db.collection(COLLECTIONS.usernames).doc(username).get()).data());
+      return record?.username === username ? record : null;
+    });
   }
 
   async getByAddress(address: string) {

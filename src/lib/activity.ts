@@ -60,6 +60,7 @@ export function parseExplorerTransfers(json: unknown, owner: Address, chain: Mez
   if (!Array.isArray(items)) return [];
   const musd = chain.tokens.MUSD;
   const out: ActivityItem[] = [];
+  const seen = new Set<string>();
   for (const raw of items) {
     const it = raw as Record<string, any>;
     const hash = it?.transaction_hash ?? it?.tx_hash;
@@ -74,11 +75,14 @@ export function parseExplorerTransfers(json: unknown, owner: Address, chain: Mez
     const outgoing = sameAddr(from, owner);
     const incoming = sameAddr(to, owner);
     if (!outgoing && !incoming) continue;
+    const key = `${hash.toLowerCase()}:${it.log_index ?? ''}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
     const counterparty = getAddress(outgoing ? to : from);
     const ts = typeof it.timestamp === 'string' ? Date.parse(it.timestamp) : NaN;
     const party = outgoing ? it.to : it.from;
     out.push({
-      key: `${hash}:${it.log_index ?? ''}`,
+      key,
       mode: 'real',
       kind: isSwapCounterparty(chain, counterparty) ? 'swap' : outgoing ? 'send' : 'receive',
       status: 'confirmed',
@@ -109,7 +113,9 @@ export async function fetchExplorerActivity(
     const res = await fetchImpl(url, { signal: controller.signal, headers: { accept: 'application/json' } });
     if (res.status === 404) return []; // address never seen by the indexer
     if (!res.ok) throw new Error(`Explorer responded ${res.status}`);
-    return parseExplorerTransfers(await res.json(), owner, chain);
+    const body = await res.json();
+    if (!body || !Array.isArray(body.items)) throw new Error('Malformed explorer response');
+    return parseExplorerTransfers(body, owner, chain);
   } finally {
     clearTimeout(timer);
   }

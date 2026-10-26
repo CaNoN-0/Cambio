@@ -1,0 +1,31 @@
+log SCRIPTAPPEND !function(e,t){"object"==typeof exports&&"object"==typeof module?module.exports=t():"function"==typeof define&&define.amd?define([],t):"object"==typeo Error
+    at Node.appendChild (<anonymous>:5:96)
+    at http://localhost:4182/assets/dist-B3_imEV_.js:1:94069
+    at new Promise (<anonymous>)
+    at St (http://localhost:4182/assets/dist-B3_imEV_.js:1:93913)
+    at np (http://localhost:4182/assets/dist-B3_imEV_.js:7:154024)
+    at Object.getProvider (http://localhost:4182/assets/exports-C2OcrVA6.js:2:5201)
+    at async lo.addWagmiConnector (http://localhost:4182/assets/index-DAKvYvve.js:10:221669)
+    at async Promise.all (index 1)
+    at async lo.addThirdPartyConnectors (http://localhost:4182/assets/index-DAKvYvve.js:10:218655)
+    at async lo.syncConnectors (http://localhost:4182/assets/index-DAKvYvve.js:10:222296)
+error Executing inline script violates the following Content Security Policy directive 'script-src 'self' 'wasm-unsafe-eval''. Either the 'unsafe-inline' keyword, a hash ('sha256-NzvNrqk5jB9YZATwo5BF4JoRlJ02HsnFikbKXgEPdaQ='), or a nonce ('nonce-...') is required to enable inline execution. The action has been blocked.
+log SCRIPTAPPEND !function(e,t){"object"==typeof exports&&"object"==typeof module?module.exports=t():"function"==typeof define&&define.amd?define([],t):"object"==typeo Error
+    at Node.appendChild (<anonymous>:5:96)
+    at http://localhost:4182/assets/dist-B3_imEV_.js:1:94069
+    at new Promise (<anonymous>)
+    at St (http://localhost:4182/assets/dist-B3_imEV_.js:1:93913)
+    at np (http://localhost:4182/assets/dist-B3_imEV_.js:7:154024)
+    at Object.getProvider (http://localhost:4182/assets/exports-C2OcrVA6.js:2:5201)
+    at async lo.addWagmiConnector (http://localhost:4182/assets/index-DAKvYvve.js:10:221669)
+error Executing inline script violates the following Content Security Policy directive 'script-src 'self' 'wasm-unsafe-eval''. Either the 'unsafe-inline' keyword, a hash ('sha256-NzvNrqk5jB9YZATwo5BF4JoRlJ02HsnFikbKXgEPdaQ='), or a nonce ('nonce-...') is required to enable inline execution. The action has been blocked.
+log CSPDETAIL {"source":"","line":6,"col":21,"sample":"","blocked":"inline"}
+log CSPDETAIL {"source":"","line":6,"col":21,"sample":"","blocked":"inline"}
+SCRIPT-TAGS [
+  { src: 'http://localhost:4182/theme-init.js', type: '', text: '' },
+  {
+    src: 'http://localhost:4182/assets/index-DAKvYvve.js',
+    type: 'module',
+    text: ''
+  }
+]

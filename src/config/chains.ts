@@ -122,7 +122,8 @@ export function toChainIdNumber(chainId: number | string | null | undefined): nu
   if (chainId === null || chainId === undefined || chainId === '') return null;
   if (typeof chainId === 'number') return Number.isSafeInteger(chainId) ? chainId : null;
   const raw = chainId.startsWith('eip155:') ? chainId.slice('eip155:'.length) : chainId;
-  const parsed = raw.startsWith('0x') ? parseInt(raw, 16) : parseInt(raw, 10);
+  if (!/^(?:0x[0-9a-fA-F]+|[0-9]+)$/.test(raw)) return null;
+  const parsed = Number(raw);
   return Number.isSafeInteger(parsed) ? parsed : null;
 }
 

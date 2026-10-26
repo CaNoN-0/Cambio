@@ -19,24 +19,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script>
-      (function() {
-        try {
-          // Sync theme synchronously to avoid flash — default to light mode on visit
-          var savedTheme = localStorage.getItem('cambio_theme');
-          var isDark = savedTheme === 'dark';
-          if (isDark) {
-            document.documentElement.classList.add('dark');
-            document.documentElement.setAttribute('data-theme', 'dark');
-          } else {
-            document.documentElement.classList.remove('dark');
-            document.documentElement.setAttribute('data-theme', 'light');
-          }
-        } catch (e) {}
-
-        // No global fetch/console patching: responses are never fabricated and errors are never hidden.
-      })();
-    </script>
+    <script src="/theme-init.js"></script>
   </head>
   <body class="bg-[#FAFAF8] dark:bg-[#0C0C0D] text-[#171717] dark:text-[#F5F5F7] antialiased selection:bg-[#315EF7]/20 selection:text-[#315EF7]">
     <div id="root"></div>

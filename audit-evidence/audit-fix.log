@@ -1,0 +1,126 @@
+
+removed 2 packages, changed 15 packages, and audited 1104 packages in 2m
+
+171 packages are looking for funding
+  run `npm fund` for details
+
+# npm audit report
+
+@grpc/grpc-js  <=1.13.5
+Severity: high
+@grpc/grpc-js: In certain configurations, getAuthContext can return unauthorized certificates as though they were authorized - https://github.com/advisories/GHSA-m9gg-hp2v-232j
+@grpc/grpc-js: The server transmits some error messages thrown by method handlers to the client in status messages - https://github.com/advisories/GHSA-f596-whhp-79r4
+fix available via `npm audit fix --force`
+Will install firebase@9.14.0, which is a breaking change
+node_modules/@grpc/grpc-js
+  @firebase/firestore  1.3.1-0 - 1.3.1-canary.df1b588 || 1.3.2-0 - 1.3.3-canary.bc4a844 || 1.13.1-0 - 1.13.1-canary.ce3addba || 1.14.0-0 - 1.15.1 || 3.7.3-20221108184443 - 3.7.3-canary.fde5adf63 || >=3.8.0-20221206221533
+  Depends on vulnerable versions of @grpc/grpc-js
+  node_modules/@firebase/firestore
+    @firebase/firestore-compat  <=0.0.900-exp.520ca39d0 || 0.2.3-20221108184443 - 0.2.3-canary.fde5adf63 || >=0.3.0-20221206221533
+    Depends on vulnerable versions of @firebase/firestore
+    node_modules/@firebase/firestore-compat
+      firebase  0.900.22 || 6.0.2-0 - 6.0.2-canary.42eae23 || 6.0.3-0 - 6.0.4-canary.bc4a844 || 7.9.1-0 - 7.9.1-canary.0396117e || 7.13.2-0 - 7.13.2-canary.ce3addba || 7.14.0-0 - 7.15.1 || 8.10.0-20217172214 - 8.10.0-canary.f40c0db53 || 9.0.0-20217250818 - 9.0.0-canary.d0d3acb10 || 9.0.1-2021727231341 - 9.0.1-canary.e039e1472 || 9.0.2-2021891633 - 9.0.2-canary.ff9baf70c || 9.0.3-202181503543 - 9.1.0-canary.f7d8324a1 || 9.1.1-2021830195733 - 9.1.1-canary.e70de6201 || 9.1.2-20219523556 - 9.1.2-canary.fc1d36497 || 9.13.1-20221108184443 - 9.14.0-canary.fde5adf63 || >=9.15.0-20221206221533
+      Depends on vulnerable versions of @firebase/firestore
+      Depends on vulnerable versions of @firebase/firestore-compat
+      node_modules/firebase
+        @firebase/rules-unit-testing  1.1.0-2020103231751 - 1.1.0-canary.f69db37ca || 1.1.4-2020112174150 || 1.2.4-202121002818 - 1.2.4-202121018311 || 2.0.2-202202622812 - 2.0.2-canary.7f959622d || 2.0.5-20221025194556 - 2.0.5-canary.fde5adf63 || 2.0.6-20230131204242 - 2.0.6-canary.d071bd1ac || 2.0.7-20230203174750 - 2.0.7-canary.fe7da7ec3 || >=3.0.0-20230706020734
+        Depends on vulnerable versions of firebase
+        node_modules/@firebase/rules-unit-testing
+
+@opentelemetry/core  <2.8.0
+Severity: moderate
+OpenTelemetry Core: Unbounded memory allocation in W3C Baggage propagation - https://github.com/advisories/GHSA-8988-4f7v-96qf
+fix available via `npm audit fix --force`
+Will install firebase-tools@14.23.0, which is a breaking change
+node_modules/@opentelemetry/core
+  @google-cloud/pubsub  5.1.0 - 6.0.0
+  Depends on vulnerable versions of @opentelemetry/core
+  node_modules/@google-cloud/pubsub
+    firebase-tools  >=13.14.0
+    Depends on vulnerable versions of @google-cloud/pubsub
+    Depends on vulnerable versions of gaxios
+    node_modules/firebase-tools
+
+uuid  <11.1.1
+Severity: moderate
+uuid: Missing buffer bounds check in v3/v5/v6 when buf is provided - https://github.com/advisories/GHSA-w5hq-g745-h8pq
+fix available via `npm audit fix --force`
+Will install firebase-tools@14.23.0, which is a breaking change
+node_modules/uuid
+  gaxios  6.4.0 - 6.7.1
+  Depends on vulnerable versions of uuid
+  node_modules/firebase-tools/node_modules/gaxios
+
+zod  <4.6.6
+Severity: high
+Zod can exhaust memory while validating oversized constrained collections - https://github.com/advisories/GHSA-mrhx-c7xc-m3w5
+No fix available
+node_modules/@coinbase/cdp-sdk/node_modules/zod
+node_modules/zod
+  @coinbase/cdp-sdk  >=1.0.0
+  Depends on vulnerable versions of abitype
+  Depends on vulnerable versions of zod
+  node_modules/@coinbase/cdp-sdk
+  @reown/appkit-wallet  *
+  Depends on vulnerable versions of zod
+  node_modules/@reown/appkit-wallet
+    @reown/appkit  *
+    Depends on vulnerable versions of @reown/appkit-controllers
+    Depends on vulnerable versions of @reown/appkit-pay
+    Depends on vulnerable versions of @reown/appkit-scaffold-ui
+    Depends on vulnerable versions of @reown/appkit-ui
+    Depends on vulnerable versions of @reown/appkit-utils
+    Depends on vulnerable versions of @reown/appkit-wallet
+    node_modules/@reown/appkit
+      @reown/appkit-adapter-wagmi  *
+      Depends on vulnerable versions of @reown/appkit
+      Depends on vulnerable versions of @reown/appkit-controllers
+      Depends on vulnerable versions of @reown/appkit-scaffold-ui
+      Depends on vulnerable versions of @reown/appkit-utils
+      Depends on vulnerable versions of @reown/appkit-wallet
+      node_modules/@reown/appkit-adapter-wagmi
+    @reown/appkit-controllers  *
+    Depends on vulnerable versions of @reown/appkit-wallet
+    node_modules/@reown/appkit-controllers
+      @reown/appkit-pay  *
+      Depends on vulnerable versions of @reown/appkit-controllers
+      Depends on vulnerable versions of @reown/appkit-ui
+      Depends on vulnerable versions of @reown/appkit-utils
+      node_modules/@reown/appkit-pay
+        @reown/appkit-scaffold-ui  *
+        Depends on vulnerable versions of @reown/appkit-controllers
+        Depends on vulnerable versions of @reown/appkit-pay
+        Depends on vulnerable versions of @reown/appkit-ui
+        Depends on vulnerable versions of @reown/appkit-utils
+        Depends on vulnerable versions of @reown/appkit-wallet
+        node_modules/@reown/appkit-scaffold-ui
+      @reown/appkit-ui  >=1.7.1-449657bc8f95adcfd295a2e883c4bcd439045044.0
+      Depends on vulnerable versions of @reown/appkit-controllers
+      Depends on vulnerable versions of @reown/appkit-wallet
+      node_modules/@reown/appkit-ui
+      @reown/appkit-utils  *
+      Depends on vulnerable versions of @reown/appkit-controllers
+      Depends on vulnerable versions of @reown/appkit-wallet
+      node_modules/@reown/appkit-utils
+  abitype  <=0.0.0-main-20230430000127 || 0.7.0-canary.20230307T162852 - 1.0.9
+  Depends on vulnerable versions of zod
+  node_modules/@coinbase/cdp-sdk/node_modules/abitype
+
+21 vulnerabilities (5 moderate, 16 high)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues possible (including breaking changes), run:
+  npm audit fix --force
+
+Some issues need review, and may require choosing
+a different dependency.
+npm warn install-scripts 5 packages have install scripts not yet covered by allowScripts:
+npm warn install-scripts   @firebase/util@1.15.3 (postinstall: node ./postinstall.js)
+npm warn install-scripts   @reown/appkit@1.8.24 (postinstall: node scripts/appkit-version-check.js)
+npm warn install-scripts   esbuild@0.28.2 (postinstall: node install.js)
+npm warn install-scripts   protobufjs@7.6.6 (postinstall: node scripts/postinstall)
+npm warn install-scripts   re2@1.27.0 (install: node-gyp rebuild)
+npm warn install-scripts
+npm warn install-scripts Run `npm install-scripts ls` to review, or `npm install-scripts approve <pkg>` to allow.

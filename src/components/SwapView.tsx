@@ -89,7 +89,7 @@ export const SwapView: React.FC<SwapViewProps> = ({ wallet, onConnectWallet, onS
   const { quote, error: quoteError, loading: quoteLoading, refresh } = useSwapQuote(chain, tokenIn, tokenOut, amountIn, slippageBps);
   const balIn = useTokenBalance(chain, wallet.address, tokenIn);
   const balOut = useTokenBalance(chain, wallet.address, tokenOut);
-  const balanceIn = typeof balIn.data === 'bigint' ? balIn.data : null;
+  const balanceIn = !balIn.isError && typeof balIn.data === 'bigint' ? balIn.data : null;
 
   // Keep tokenOut valid for the selected input.
   useEffect(() => {
@@ -115,7 +115,7 @@ export const SwapView: React.FC<SwapViewProps> = ({ wallet, onConnectWallet, onS
   const expired = quote ? isQuoteExpired(quote, now) : false;
   const ageSec = quote ? Math.max(0, Math.floor((now - quote.fetchedAt) / 1000)) : 0;
   const highImpact = quote?.priceImpactBps != null && quote.priceImpactBps > 300;
-  const severeImpact = quote?.priceImpactBps != null && quote.priceImpactBps > 1500;
+  const severeImpact = !!quote && (quote.priceImpactBps === null || quote.priceImpactBps > 1500);
 
   const rateLabel = (q: SwapQuote) => {
     // 1 tokenIn = X tokenOut, exact bigint ratio scaled to tokenOut decimals.
@@ -124,6 +124,8 @@ export const SwapView: React.FC<SwapViewProps> = ({ wallet, onConnectWallet, onS
     return `1 ${q.tokenIn.symbol} ≈ ${formatTokenDisplay(perUnit, q.tokenOut.decimals, { maxFractionDigits: q.tokenOut.symbol === 'BTC' ? 8 : 4 })} ${q.tokenOut.symbol}`;
   };
 
+  useEffect(() => { if (!exec.busy) { setReviewing(null); exec.reset(); } }, [wallet.address, wallet.chainId]);
+
   const canReview =
     !isDemo && wallet.isConnected && !!chain && !!quote && !expired && !insufficient && !severeImpact && !quoteLoading && !!wallet.address;
 
@@ -131,6 +133,7 @@ export const SwapView: React.FC<SwapViewProps> = ({ wallet, onConnectWallet, onS
 
   return (
     <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-200">
+      {chain?.isTestnet && <p role="note" className="p-3 rounded-xl bg-amber-500/10 text-amber-800 dark:text-amber-300 text-xs">Testnet pool quotes are experimental liquidity, not market rates. Pools may be off-peg or have no liquidity.</p>}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-[#E2E2E0] dark:border-[#26262B]">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#111111] dark:text-[#FFFFFF]">Swap</h1>
@@ -267,7 +270,7 @@ export const SwapView: React.FC<SwapViewProps> = ({ wallet, onConnectWallet, onS
                       {shortenAddress(chain.router)} <ExternalLink className="w-3 h-3" />
                     </a>
                   </Row>
-                  {severeImpact && <p className="pt-1 text-red-600">Price impact is above 15%. This pool is too shallow for this amount; swapping is disabled.</p>}
+                  {severeImpact && <p className="pt-1 text-red-600">Price impact is unavailable or above 15%; swapping is disabled.</p>}
                   {highImpact && !severeImpact && <p className="pt-1 text-amber-600">High price impact. You would receive noticeably less than the pool’s current price.</p>}
                 </div>
               )}

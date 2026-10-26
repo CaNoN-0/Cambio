@@ -103,7 +103,7 @@ export class IdentityService {
     this.verify = opts.verifySignature ?? defaultSignatureVerifier();
     this.now = opts.now ?? Date.now;
     this.ttl = opts.challengeTtlMs ?? CHALLENGE_TTL_MS;
-    this.allowedChainIds = opts.allowedChainIds ?? [MEZO_TESTNET.chainId, MEZO_MAINNET.chainId];
+    this.allowedChainIds = opts.allowedChainIds ?? [MEZO_TESTNET.chainId];
   }
 
   get storeInfo() {
@@ -123,13 +123,13 @@ export class IdentityService {
     const v = validateUsername(typeof raw === 'string' ? raw : '');
     if (!v.valid) return null;
     const r = await this.store.getByUsername(v.username);
-    return r ? toPublic(r) : null;
+    return r && this.allowedChainIds.includes(r.chainId) ? toPublic(r) : null;
   }
 
   async lookupAddress(raw: unknown): Promise<PublicUsernameRecord | null> {
     const address = this.parseAddress(raw);
     const r = await this.store.getByAddress(address);
-    return r ? toPublic(r) : null;
+    return r && this.allowedChainIds.includes(r.chainId) ? toPublic(r) : null;
   }
 
   async checkAvailability(rawUsername: unknown, rawAddress?: unknown) {
@@ -182,16 +182,26 @@ export class IdentityService {
 
   async claim(body: { nonce?: unknown; signature?: unknown }, origin: OriginContext) {
     if (typeof body.nonce !== 'string' || !/^[a-zA-Z0-9]{8,128}$/.test(body.nonce)) throw new IdentityError(400, 'invalid_challenge', REASON_TO_ERROR.challenge_not_found[1]);
-    if (typeof body.signature !== 'string' || !/^0x[0-9a-fA-F]{130,4096}$/.test(body.signature)) throw new IdentityError(400, 'invalid_signature', 'Signature is malformed.');
+    if (typeof body.signature !== 'string' || !/^0x(?:[0-9a-fA-F]{2}){0,2048}$/.test(body.signature)) throw new IdentityError(400, 'invalid_signature', 'Signature is malformed.');
 
     const challenge = await this.store.getChallenge(body.nonce);
     if (!challenge) throw new IdentityError(...this.err('challenge_not_found'));
+    if (!this.allowedChainIds.includes(challenge.chainId) || !['register', 'change'].includes(challenge.action)) throw new IdentityError(400, 'invalid_challenge', 'Unsupported sign-in authorization.');
     if (challenge.usedAt !== null) throw new IdentityError(...this.err('challenge_used'));
     const now = this.now();
     if (now >= challenge.expiresAt) throw new IdentityError(...this.err('challenge_expired'));
 
     // Defence in depth: the stored text must still parse as a SIWE message for this domain and nonce.
     const parsed = parseSiweMessage(challenge.message);
+    const statement = challenge.action === 'register'
+      ? `Register the Cambio username ${formatUsername(challenge.username)} to this wallet. Signing is free and does not send a transaction.`
+      : null;
+    if (parsed.uri !== origin.uri || parsed.version !== '1' || parsed.chainId !== challenge.chainId ||
+        parsed.issuedAt?.getTime() !== challenge.issuedAt || parsed.expirationTime?.getTime() !== challenge.expiresAt ||
+        (statement !== null && parsed.statement !== statement) ||
+        (challenge.action === 'change' && (!parsed.statement?.startsWith("Change this wallet's Cambio username from @") || !parsed.statement.endsWith(` to ${formatUsername(challenge.username)}. Signing is free and does not send a transaction.`)))) {
+      throw new IdentityError(400, 'invalid_challenge', 'The stored sign-in message does not match the requested action.');
+    }
     if (!validateSiweMessage({ message: parsed, domain: origin.domain, nonce: challenge.nonce, address: getAddress(challenge.address), time: new Date(now) })) {
       throw new IdentityError(400, 'invalid_challenge', 'This sign-in request is not valid for this site.');
     }
@@ -200,7 +210,7 @@ export class IdentityService {
     const ok = await this.verify({ address: getAddress(challenge.address), message: challenge.message, signature: body.signature as Hex, chainId: challenge.chainId });
     if (!ok) throw new IdentityError(401, 'invalid_signature', 'The signature was not produced by this wallet.');
 
-    const result = await this.store.commitClaim({ nonce: challenge.nonce, address: challenge.address, action: challenge.action, username: challenge.username, now });
+    const result = await this.store.commitClaim({ nonce: challenge.nonce, address: challenge.address, action: challenge.action, username: challenge.username, now: this.now() });
     if (!result.ok) throw new IdentityError(...this.err(result.reason));
     return { record: toPublic(result.record), previousUsername: result.previousUsername };
   }

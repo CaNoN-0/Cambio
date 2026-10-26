@@ -13,9 +13,9 @@ const STATUS_STYLE: Record<ActivityStatus, { label: string; cls: string }> = {
   simulated: { label: 'Simulated', cls: 'bg-violet-500/10 text-violet-700 dark:text-violet-400' },
 };
 
-export const StatusBadge: React.FC<{ status: ActivityStatus }> = ({ status }) => (
+export const StatusBadge: React.FC<{ status: ActivityStatus; source?: ActivityItem['source'] }> = ({ status, source }) => (
   <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold uppercase tracking-wider ${STATUS_STYLE[status].cls}`}>
-    {STATUS_STYLE[status].label}
+    {status === 'confirmed' && source === 'explorer' ? 'Indexed' : STATUS_STYLE[status].label}
   </span>
 );
 
@@ -61,7 +61,7 @@ export const TransactionRow: React.FC<TransactionRowProps> = ({ item, onClick })
           </div>
           <div className="flex items-center gap-2 text-xs text-[#777777] dark:text-[#A0A0A0] mt-0.5">
             <span className="font-mono">{formatDateTime(item.timestamp)}</span>
-            <StatusBadge status={item.status} />
+            <StatusBadge status={item.status} source={item.source} />
           </div>
         </div>
       </div>

@@ -21,12 +21,13 @@ export function useSwapQuote(chain: MezoChainConfig | null, inSym: SwapSymbol, o
   const seq = useRef(0);
 
   const refresh = useCallback(async () => {
+    const run = ++seq.current;
     if (!chain || !amountIn || amountIn <= 0n) {
+      setLoading(false);
       setQuote(null);
       setError(null);
       return;
     }
-    const run = ++seq.current;
     setLoading(true);
     try {
       const q = await fetchSwapQuote(publicClientFor(chain.chainId) as never, chain, inSym, outSym, amountIn, slippageBps);
@@ -47,15 +48,18 @@ export function useSwapQuote(chain: MezoChainConfig | null, inSym: SwapSymbol, o
 
   useEffect(() => {
     setQuote(null);
+    setError(null);
     const t = setTimeout(refresh, 400);
     const i = setInterval(() => document.visibilityState === 'visible' && refresh(), REFRESH_MS);
     return () => {
+      ++seq.current;
       clearTimeout(t);
       clearInterval(i);
     };
   }, [refresh]);
 
-  return { quote, error, loading, refresh };
+  const currentQuote = quote && chain && quote.chainId === chain.chainId && quote.tokenIn.symbol === inSym && quote.tokenOut.symbol === outSym && quote.amountIn === amountIn && quote.slippageBps === slippageBps ? quote : null;
+  return { quote: currentQuote, error, loading, refresh };
 }
 
 export function useSwapExecution() {

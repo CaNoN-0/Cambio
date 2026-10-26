@@ -1,0 +1,628 @@
+
+> cambio@0.2.0 test:e2e
+> playwright test
+
+[WebServer] (node:26968) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+[WebServer]   - import "./server/app" without a file extension (vite.config.ts:15:45). Add the file extension
+[WebServer]   - import "./server/bootstrap" without a file extension (vite.config.ts:16:50). Add the file extension
+[WebServer]   - import "./identity/service" without a file extension (server/app.ts:10:91). Add the file extension
+[WebServer]   - import "./identity/service" without a file extension (server/bootstrap.ts:20:33). Add the file extension
+[WebServer]   - import "./rateLimit" without a file extension (server/app.ts:11:54). Add the file extension
+[WebServer]   - import "./identity/memoryStore" without a file extension (server/bootstrap.ts:21:37). Add the file extension
+[WebServer]   - import "./identity/store" without a file extension (server/bootstrap.ts:22:36). Add the file extension
+[WebServer]   - import "./rateLimit" without a file extension (server/bootstrap.ts:23:43). Add the file extension
+[WebServer]   - import "./identity/firestoreStore" without a file extension (server/bootstrap.ts:43:51). Add the file extension
+[WebServer]   - import "../../src/config/chains" without a file extension (server/identity/service.ts:18:44). Add the file extension
+[WebServer]   - import "../../shared/username" without a file extension (server/identity/service.ts:19:50). Add the file extension
+[WebServer]   - import "./store" without a file extension (server/identity/service.ts:20:98). Add the file extension
+[WebServer]   - import "../../shared/username" without a file extension (server/identity/firestoreStore.ts:20:34). Add the file extension
+[WebServer]   - import "./store" without a file extension (server/identity/memoryStore.ts:10:111). Add the file extension
+[WebServer]   - import "./store" without a file extension (server/identity/firestoreStore.ts:21:134). Add the file extension
+[WebServer] Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+[WebServer] [identity] Using the in-memory store: usernames are NOT durable and NOT shared across instances.
+
+Running 17 tests using 2 workers
+
+(node:9628) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:19328) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x   2 [desktop] › tests\e2e\app.spec.ts:48:1 › landing → dashboard loads without runtime errors and serves the API (10.3s)
+  x   1 [mobile] › tests\e2e\app.spec.ts:219:1 › @mobile core screens fit a phone without horizontal scrolling (11.7s)
+(node:11464) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x   3 [desktop] › tests\e2e\app.spec.ts:59:1 › receive shows no address at all until a wallet is connected (2.3s)
+(node:21864) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x   4 [desktop] › tests\e2e\app.spec.ts:66:1 › connecting reads real Mezo Testnet balances (BTC and MUSD separately) (6.0s)
+(node:31516) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x   5 [desktop] › tests\e2e\app.spec.ts:77:1 › claims a @username with a real wallet signature verified by the server, then resolves it from another session (12.2s)
+(node:21200) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x   6 [desktop] › tests\e2e\app.spec.ts:108:1 › a declined signature does not claim a username (5.1s)
+(node:2244) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok  7 [desktop] › tests\e2e\app.spec.ts:120:1 › a signed request opened in a separate session runs the real on-chain preflight, then respects a wallet rejection (14.8s)
+  x   8 [desktop] › tests\e2e\app.spec.ts:142:1 › a tampered signed link is refused before any payment UI is offered (3.5s)
+(node:30704) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x   9 [desktop] › tests\e2e\app.spec.ts:154:1 › expired and malformed links are not payable (2.3s)
+(node:24276) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x  10 [desktop] › tests\e2e\app.spec.ts:162:1 › sending more MUSD than the wallet really holds is stopped by a live balance check (6.5s)
+(node:7764) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x  11 [desktop] › tests\e2e\app.spec.ts:175:1 › a network change in the wallet is detected, hides balances, and can be switched back from the app (5.5s)
+(node:14292) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x  12 [desktop] › tests\e2e\app.spec.ts:194:1 › swap shows a live router quote with the on-chain pool fee, and stops at the wallet (8.1s)
+(node:19344) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x  13 [desktop] › tests\e2e\app.spec.ts:207:1 › disconnecting clears wallet state (6.0s)
+(node:1552) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x  14 [desktop] › tests\e2e\app.spec.ts:234:1 › hash navigation replaces the request recipient and resets verification (4.6s)
+(node:3928) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x  15 [desktop] › tests\e2e\app.spec.ts:243:1 › storage denial does not crash startup or theme controls (21.1s)
+(node:2208) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x  16 [desktop] › tests\e2e\app.spec.ts:253:1 › direct routes, assets and API errors are served by production Express with CSP (2.4s)
+(node:8496) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  x  17 [desktop] › tests\e2e\app.spec.ts:262:1 › recipient creates a signed request through its real wallet signature and opens it (8.4s)
+
+
+  1) [desktop] › tests\e2e\app.spec.ts:48:1 › landing → dashboard loads without runtime errors and serves the API 
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 4
+
+    - Array []
+    + Array [
+    +   "script-src-elem: inline",
+    +   "script-src-elem: inline",
+    + ]
+
+      23 | test.afterEach(async ({ page }) => {
+      24 |   expect(runtimeErrors.get(page) ?? []).toEqual([]);
+    > 25 |   if (!page.isClosed()) expect(await page.evaluate(() => (window as any).__cspViolations ?? [])).toEqual([]);
+         |                                                                                                  ^
+      26 | });
+      27 |
+      28 | function collectErrors(page: Page) {
+        at C:\Users\LUSHEGS\Documents\Codex\2026-10-25\you-re-a-principal-software-engineer\work\Cambio\tests\e2e\app.spec.ts:25:98
+
+    Error Context: test-results\app-landing-→-dashboard-lo-960be-e-errors-and-serves-the-API-desktop\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\app-landing-→-dashboard-lo-960be-e-errors-and-serves-the-API-desktop\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\app-landing-→-dashboard-lo-960be-e-errors-and-serves-the-API-desktop\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [desktop] › tests\e2e\app.spec.ts:59:1 › receive shows no address at all until a wallet is connected 
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 4
+
+    - Array []
+    + Array [
+    +   "script-src-elem: inline",
+    +   "script-src-elem: inline",
+    + ]
+
+      23 | test.afterEach(async ({ page }) => {
+      24 |   expect(runtimeErrors.get(page) ?? []).toEqual([]);
+    > 25 |   if (!page.isClosed()) expect(await page.evaluate(() => (window as any).__cspViolations ?? [])).toEqual([]);
+         |                                                                                                  ^
+      26 | });
+      27 |
+      28 | function collectErrors(page: Page) {
+        at C:\Users\LUSHEGS\Documents\Codex\2026-10-25\you-re-a-principal-software-engineer\work\Cambio\tests\e2e\app.spec.ts:25:98
+
+    Error Context: test-results\app-receive-shows-no-addre-9f656-until-a-wallet-is-connected-desktop\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\app-receive-shows-no-addre-9f656-until-a-wallet-is-connected-desktop\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\app-receive-shows-no-addre-9f656-until-a-wallet-is-connected-desktop\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [desktop] › tests\e2e\app.spec.ts:66:1 › connecting reads real Mezo Testnet balances (BTC and MUSD separately) 
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 4
+
+    - Array []
+    + Array [
+    +   "script-src-elem: inline",
+    +   "script-src-elem: inline",
+    + ]
+
+      23 | test.afterEach(async ({ page }) => {
+      24 |   expect(runtimeErrors.get(page) ?? []).toEqual([]);
+    > 25 |   if (!page.isClosed()) expect(await page.evaluate(() => (window as any).__cspViolations ?? [])).toEqual([]);
+         |                                                                                                  ^
+      26 | });
+      27 |
+      28 | function collectErrors(page: Page) {
+        at C:\Users\LUSHEGS\Documents\Codex\2026-10-25\you-re-a-principal-software-engineer\work\Cambio\tests\e2e\app.spec.ts:25:98
+
+    Error Context: test-results\app-connecting-reads-real--edec0-es-BTC-and-MUSD-separately--desktop\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\app-connecting-reads-real--edec0-es-BTC-and-MUSD-separately--desktop\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\app-connecting-reads-real--edec0-es-BTC-and-MUSD-separately--desktop\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) [desktop] › tests\e2e\app.spec.ts:77:1 › claims a @username with a real wallet signature verified by the server, then resolves it from another session 
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 4
+
+    - Array []
+    + Array [
+    +   "script-src-elem: inline",
+    +   "script-src-elem: inline",
+    + ]
+
+      23 | test.afterEach(async ({ page }) => {
+      24 |   expect(runtimeErrors.get(page) ?? []).toEqual([]);
+    > 25 |   if (!page.isClosed()) expect(await page.evaluate(() => (window as any).__cspViolations ?? [])).toEqual([]);
+         |                                                                                                  ^
+      26 | });
+      27 |
+      28 | function collectErrors(page: Page) {
+        at C:\Users\LUSHEGS\Documents\Codex\2026-10-25\you-re-a-principal-software-engineer\work\Cambio\tests\e2e\app.spec.ts:25:98
+
+    Error Context: test-results\app-claims-a-username-with-2ea5b-ves-it-from-another-session-desktop\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\app-claims-a-username-with-2ea5b-ves-it-from-another-session-desktop\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\app-claims-a-username-with-2ea5b-ves-it-from-another-session-desktop\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  5) [desktop] › tests\e2e\app.spec.ts:108:1 › a declined signature does not claim a username ──────
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 4
+
+    - Array []
+    + Array [
+    +   "script-src-elem: inline",
+    +   "script-src-elem: inline",
+    + ]
+
+      23 | test.afterEach(async ({ page }) => {
+      24 |   expect(runtimeErrors.get(page) ?? []).toEqual([]);
+    > 25 |   if (!page.isClosed()) expect(await page.evaluate(() => (window as any).__cspViolations ?? [])).toEqual([]);
+         |                                                                                                  ^
+      26 | });
+      27 |
+      28 | function collectErrors(page: Page) {
+        at C:\Users\LUSHEGS\Documents\Codex\2026-10-25\you-re-a-principal-software-engineer\work\Cambio\tests\e2e\app.spec.ts:25:98
+
+    Error Context: test-results\app-a-declined-signature-does-not-claim-a-username-desktop\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\app-a-declined-signature-does-not-claim-a-username-desktop\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\app-a-declined-signature-does-not-claim-a-username-desktop\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  6) [desktop] › tests\e2e\app.spec.ts:142:1 › a tampered signed link is refused before any payment UI is offered 
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 4
+
+    - Array []
+    + Array [
+    +   "script-src-elem: inline",
+    +   "script-src-elem: inline",
+    + ]
+
+      23 | test.afterEach(async ({ page }) => {
+      24 |   expect(runtimeErrors.get(page) ?? []).toEqual([]);
+    > 25 |   if (!page.isClosed()) expect(await page.evaluate(() => (window as any).__cspViolations ?? [])).toEqual([]);
+         |                                                                                                  ^
+      26 | });
+      27 |
+      28 | function collectErrors(page: Page) {
+        at C:\Users\LUSHEGS\Documents\Codex\2026-10-25\you-re-a-principal-software-engineer\work\Cambio\tests\e2e\app.spec.ts:25:98
+
+    Error Context: test-results\app-a-tampered-signed-link-3038a-e-any-payment-UI-is-offered-desktop\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\app-a-tampered-signed-link-3038a-e-any-payment-UI-is-offered-desktop\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\app-a-tampered-signed-link-3038a-e-any-payment-UI-is-offered-desktop\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  7) [desktop] › tests\e2e\app.spec.ts:154:1 › expired and malformed links are not payable ─────────
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 4
+
+    - Array []
+    + Array [
+    +   "script-src-elem: inline",
+    +   "script-src-elem: inline",
+    + ]
+
+      23 | test.afterEach(async ({ page }) => {
+      24 |   expect(runtimeErrors.get(page) ?? []).toEqual([]);
+    > 25 |   if (!page.isClosed()) expect(await page.evaluate(() => (window as any).__cspViolations ?? [])).toEqual([]);
+         |                                                                                                  ^
+      26 | });
+      27 |
+      28 | function collectErrors(page: Page) {
+        at C:\Users\LUSHEGS\Documents\Codex\2026-10-25\you-re-a-principal-software-engineer\work\Cambio\tests\e2e\app.spec.ts:25:98
+
+    Error Context: test-results\app-expired-and-malformed-links-are-not-payable-desktop\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\app-expired-and-malformed-links-are-not-payable-desktop\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\app-expired-and-malformed-links-are-not-payable-desktop\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  8) [desktop] › tests\e2e\app.spec.ts:162:1 › sending more MUSD than the wallet really holds is stopped by a live balance check 
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 4
+
+    - Array []
+    + Array [
+    +   "script-src-elem: inline",
+    +   "script-src-elem: inline",
+    + ]
+
+      23 | test.afterEach(async ({ page }) => {
+      24 |   expect(runtimeErrors.get(page) ?? []).toEqual([]);
+    > 25 |   if (!page.isClosed()) expect(await page.evaluate(() => (window as any).__cspViolations ?? [])).toEqual([]);
+         |                                                                                                  ^
+      26 | });
+      27 |
+      28 | function collectErrors(page: Page) {
+        at C:\Users\LUSHEGS\Documents\Codex\2026-10-25\you-re-a-principal-software-engineer\work\Cambio\tests\e2e\app.spec.ts:25:98
+
+    Error Context: test-results\app-sending-more-MUSD-than-dafc5-ped-by-a-live-balance-check-desktop\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\app-sending-more-MUSD-than-dafc5-ped-by-a-live-balance-check-desktop\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\app-sending-more-MUSD-than-dafc5-ped-by-a-live-balance-check-desktop\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  9) [desktop] › tests\e2e\app.spec.ts:175:1 › a network change in the wallet is detected, hides balances, and can be switched back from the app 
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 4
+
+    - Array []
+    + Array [
+    +   "script-src-elem: inline",
+    +   "script-src-elem: inline",
+    + ]
+
+      23 | test.afterEach(async ({ page }) => {
+      24 |   expect(runtimeErrors.get(page) ?? []).toEqual([]);
+    > 25 |   if (!page.isClosed()) expect(await page.evaluate(() => (window as any).__cspViolations ?? [])).toEqual([]);
+         |                                                                                                  ^
+      26 | });
+      27 |
+      28 | function collectErrors(page: Page) {
+        at C:\Users\LUSHEGS\Documents\Codex\2026-10-25\you-re-a-principal-software-engineer\work\Cambio\tests\e2e\app.spec.ts:25:98
+
+    Error Context: test-results\app-a-network-change-in-th-9bcaf--switched-back-from-the-app-desktop\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\app-a-network-change-in-th-9bcaf--switched-back-from-the-app-desktop\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\app-a-network-change-in-th-9bcaf--switched-back-from-the-app-desktop\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  10) [desktop] › tests\e2e\app.spec.ts:194:1 › swap shows a live router quote with the on-chain pool fee, and stops at the wallet 
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 4
+
+    - Array []
+    + Array [
+    +   "script-src-elem: inline",
+    +   "script-src-elem: inline",
+    + ]
+
+      23 | test.afterEach(async ({ page }) => {
+      24 |   expect(runtimeErrors.get(page) ?? []).toEqual([]);
+    > 25 |   if (!page.isClosed()) expect(await page.evaluate(() => (window as any).__cspViolations ?? [])).toEqual([]);
+         |                                                                                                  ^
+      26 | });
+      27 |
+      28 | function collectErrors(page: Page) {
+        at C:\Users\LUSHEGS\Documents\Codex\2026-10-25\you-re-a-principal-software-engineer\work\Cambio\tests\e2e\app.spec.ts:25:98
+
+    Error Context: test-results\app-swap-shows-a-live-rout-167e2-fee-and-stops-at-the-wallet-desktop\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\app-swap-shows-a-live-rout-167e2-fee-and-stops-at-the-wallet-desktop\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\app-swap-shows-a-live-rout-167e2-fee-and-stops-at-the-wallet-desktop\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  11) [desktop] › tests\e2e\app.spec.ts:207:1 › disconnecting clears wallet state ──────────────────
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 4
+
+    - Array []
+    + Array [
+    +   "script-src-elem: inline",
+    +   "script-src-elem: inline",
+    + ]
+
+      23 | test.afterEach(async ({ page }) => {
+      24 |   expect(runtimeErrors.get(page) ?? []).toEqual([]);
+    > 25 |   if (!page.isClosed()) expect(await page.evaluate(() => (window as any).__cspViolations ?? [])).toEqual([]);
+         |                                                                                                  ^
+      26 | });
+      27 |
+      28 | function collectErrors(page: Page) {
+        at C:\Users\LUSHEGS\Documents\Codex\2026-10-25\you-re-a-principal-software-engineer\work\Cambio\tests\e2e\app.spec.ts:25:98
+
+    Error Context: test-results\app-disconnecting-clears-wallet-state-desktop\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\app-disconnecting-clears-wallet-state-desktop\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\app-disconnecting-clears-wallet-state-desktop\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  12) [desktop] › tests\e2e\app.spec.ts:234:1 › hash navigation replaces the request recipient and resets verification 
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 4
+
+    - Array []
+    + Array [
+    +   "script-src-elem: inline",
+    +   "script-src-elem: inline",
+    + ]
+
+      23 | test.afterEach(async ({ page }) => {
+      24 |   expect(runtimeErrors.get(page) ?? []).toEqual([]);
+    > 25 |   if (!page.isClosed()) expect(await page.evaluate(() => (window as any).__cspViolations ?? [])).toEqual([]);
+         |                                                                                                  ^
+      26 | });
+      27 |
+      28 | function collectErrors(page: Page) {
+        at C:\Users\LUSHEGS\Documents\Codex\2026-10-25\you-re-a-principal-software-engineer\work\Cambio\tests\e2e\app.spec.ts:25:98
+
+    Error Context: test-results\app-hash-navigation-replac-758fa-ent-and-resets-verification-desktop\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\app-hash-navigation-replac-758fa-ent-and-resets-verification-desktop\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\app-hash-navigation-replac-758fa-ent-and-resets-verification-desktop\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  13) [desktop] › tests\e2e\app.spec.ts:243:1 › storage denial does not crash startup or theme controls 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText(/MUSD balance/i).first()
+    Expected: visible
+    Timeout: 20000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" getByText(/MUSD balance/i).first() with timeout 20000ms
+      - waiting for getByText(/MUSD balance/i).first()
+
+
+      246 |     Object.defineProperty(window, 'localStorage', { get: deny });
+      247 |   });
+    > 248 |   await page.goto('/app'); await expect(page.getByText(/MUSD balance/i).first()).toBeVisible();
+          |                                                                                  ^
+      249 |   await page.getByRole('button', { name: /switch to dark mode/i }).click();
+      250 |   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+      251 | });
+        at C:\Users\LUSHEGS\Documents\Codex\2026-10-25\you-re-a-principal-software-engineer\work\Cambio\tests\e2e\app.spec.ts:248:82
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 3
+
+    - Array []
+    + Array [
+    +   "Storage disabled",
+    + ]
+
+      22 | });
+      23 | test.afterEach(async ({ page }) => {
+    > 24 |   expect(runtimeErrors.get(page) ?? []).toEqual([]);
+         |                                         ^
+      25 |   if (!page.isClosed()) expect(await page.evaluate(() => (window as any).__cspViolations ?? [])).toEqual([]);
+      26 | });
+      27 |
+        at C:\Users\LUSHEGS\Documents\Codex\2026-10-25\you-re-a-principal-software-engineer\work\Cambio\tests\e2e\app.spec.ts:24:41
+
+    Error Context: test-results\app-storage-denial-does-not-crash-startup-or-theme-controls-desktop\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\app-storage-denial-does-not-crash-startup-or-theme-controls-desktop\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\app-storage-denial-does-not-crash-startup-or-theme-controls-desktop\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  14) [desktop] › tests\e2e\app.spec.ts:253:1 › direct routes, assets and API errors are served by production Express with CSP 
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 4
+
+    - Array []
+    + Array [
+    +   "script-src-elem: inline",
+    +   "script-src-elem: inline",
+    + ]
+
+      23 | test.afterEach(async ({ page }) => {
+      24 |   expect(runtimeErrors.get(page) ?? []).toEqual([]);
+    > 25 |   if (!page.isClosed()) expect(await page.evaluate(() => (window as any).__cspViolations ?? [])).toEqual([]);
+         |                                                                                                  ^
+      26 | });
+      27 |
+      28 | function collectErrors(page: Page) {
+        at C:\Users\LUSHEGS\Documents\Codex\2026-10-25\you-re-a-principal-software-engineer\work\Cambio\tests\e2e\app.spec.ts:25:98
+
+    Error Context: test-results\app-direct-routes-assets-a-9bc60-production-Express-with-CSP-desktop\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\app-direct-routes-assets-a-9bc60-production-Express-with-CSP-desktop\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\app-direct-routes-assets-a-9bc60-production-Express-with-CSP-desktop\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  15) [desktop] › tests\e2e\app.spec.ts:262:1 › recipient creates a signed request through its real wallet signature and opens it 
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 4
+
+    - Array []
+    + Array [
+    +   "script-src-elem: inline",
+    +   "script-src-elem: inline",
+    + ]
+
+      23 | test.afterEach(async ({ page }) => {
+      24 |   expect(runtimeErrors.get(page) ?? []).toEqual([]);
+    > 25 |   if (!page.isClosed()) expect(await page.evaluate(() => (window as any).__cspViolations ?? [])).toEqual([]);
+         |                                                                                                  ^
+      26 | });
+      27 |
+      28 | function collectErrors(page: Page) {
+        at C:\Users\LUSHEGS\Documents\Codex\2026-10-25\you-re-a-principal-software-engineer\work\Cambio\tests\e2e\app.spec.ts:25:98
+
+    Error Context: test-results\app-recipient-creates-a-si-a6928-llet-signature-and-opens-it-desktop\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\app-recipient-creates-a-si-a6928-llet-signature-and-opens-it-desktop\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\app-recipient-creates-a-si-a6928-llet-signature-and-opens-it-desktop\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  16) [mobile] › tests\e2e\app.spec.ts:219:1 › @mobile core screens fit a phone without horizontal scrolling 
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 4
+
+    - Array []
+    + Array [
+    +   "script-src-elem: inline",
+    +   "script-src-elem: inline",
+    + ]
+
+      23 | test.afterEach(async ({ page }) => {
+      24 |   expect(runtimeErrors.get(page) ?? []).toEqual([]);
+    > 25 |   if (!page.isClosed()) expect(await page.evaluate(() => (window as any).__cspViolations ?? [])).toEqual([]);
+         |                                                                                                  ^
+      26 | });
+      27 |
+      28 | function collectErrors(page: Page) {
+        at C:\Users\LUSHEGS\Documents\Codex\2026-10-25\you-re-a-principal-software-engineer\work\Cambio\tests\e2e\app.spec.ts:25:98
+
+    Error Context: test-results\app--mobile-core-screens-f-77700-ithout-horizontal-scrolling-mobile\error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results\app--mobile-core-screens-f-77700-ithout-horizontal-scrolling-mobile\trace.zip
+    Usage:
+
+        npx playwright show-trace test-results\app--mobile-core-screens-f-77700-ithout-horizontal-scrolling-mobile\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  16 failed
+    [desktop] › tests\e2e\app.spec.ts:48:1 › landing → dashboard loads without runtime errors and serves the API 
+    [desktop] › tests\e2e\app.spec.ts:59:1 › receive shows no address at all until a wallet is connected 
+    [desktop] › tests\e2e\app.spec.ts:66:1 › connecting reads real Mezo Testnet balances (BTC and MUSD separately) 
+    [desktop] › tests\e2e\app.spec.ts:77:1 › claims a @username with a real wallet signature verified by the server, then resolves it from another session 
+    [desktop] › tests\e2e\app.spec.ts:108:1 › a declined signature does not claim a username ───────
+    [desktop] › tests\e2e\app.spec.ts:142:1 › a tampered signed link is refused before any payment UI is offered 
+    [desktop] › tests\e2e\app.spec.ts:154:1 › expired and malformed links are not payable ──────────
+    [desktop] › tests\e2e\app.spec.ts:162:1 › sending more MUSD than the wallet really holds is stopped by a live balance check 
+    [desktop] › tests\e2e\app.spec.ts:175:1 › a network change in the wallet is detected, hides balances, and can be switched back from the app 
+    [desktop] › tests\e2e\app.spec.ts:194:1 › swap shows a live router quote with the on-chain pool fee, and stops at the wallet 
+    [desktop] › tests\e2e\app.spec.ts:207:1 › disconnecting clears wallet state ────────────────────
+    [desktop] › tests\e2e\app.spec.ts:234:1 › hash navigation replaces the request recipient and resets verification 
+    [desktop] › tests\e2e\app.spec.ts:243:1 › storage denial does not crash startup or theme controls 
+    [desktop] › tests\e2e\app.spec.ts:253:1 › direct routes, assets and API errors are served by production Express with CSP 
+    [desktop] › tests\e2e\app.spec.ts:262:1 › recipient creates a signed request through its real wallet signature and opens it 
+    [mobile] › tests\e2e\app.spec.ts:219:1 › @mobile core screens fit a phone without horizontal scrolling 
+  1 passed (3.3m)

@@ -348,6 +348,7 @@ export default function App() {
   if (currentRoute === 'pay' && paymentLink) {
     return (
       <PaymentRequestPage
+        key={JSON.stringify(paymentLink)}
         link={paymentLink}
         wallet={wallet}
         onConnectWallet={handleOpenWalletModal}
@@ -575,6 +576,7 @@ export default function App() {
 
       {wallet.address && (
         <UsernameModal
+          key={wallet.address}
           isOpen={isUsernameModalOpen}
           onClose={handleCloseUsernameModal}
           walletAddress={wallet.address}

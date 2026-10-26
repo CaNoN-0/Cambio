@@ -15,14 +15,17 @@ const EMPTY: ActivityResult = { items: [], source: 'none', coverage: '', fetched
 export function useActivity(address: Address | null, chain: MezoChainConfig | null, enabled: boolean) {
   const [result, setResult] = useState<ActivityResult>(EMPTY);
   const [loading, setLoading] = useState(false);
+  const [loadedFor, setLoadedFor] = useState('');
+  const scope = `${enabled}:${chain?.chainId}:${address?.toLowerCase()}`;
   const seq = useRef(0);
 
   const load = useCallback(async () => {
+    const run = ++seq.current;
     if (!enabled || !address || !chain) {
+      setLoading(false);
       setResult(EMPTY);
       return;
     }
-    const run = ++seq.current;
     setLoading(true);
 
     // Re-derive the status of anything this device submitted before reading history.
@@ -46,7 +49,7 @@ export function useActivity(address: Address | null, chain: MezoChainConfig | nu
         next = {
           items: mergeActivity(items, readLedger(chain.chainId, address)),
           source: 'rpc-logs',
-          coverage: 'Explorer unavailable — showing MUSD transfers from the last ~11 hours read directly from the RPC',
+          coverage: 'Explorer unavailable — showing MUSD transfers from up to the latest 10,000 blocks read directly from the RPC',
           fetchedAt: Date.now(),
           error: null,
         };
@@ -62,13 +65,15 @@ export function useActivity(address: Address | null, chain: MezoChainConfig | nu
     }
     if (run === seq.current) {
       setResult(next);
+      setLoadedFor(scope);
       setLoading(false);
     }
-  }, [address, chain, enabled]);
+  }, [address, chain, enabled, scope]);
 
   useEffect(() => {
     setResult(EMPTY);
     load();
+    return () => { ++seq.current; };
   }, [load]);
 
   // Poll while anything is unresolved, so pending transactions settle on screen without a reload.
@@ -79,5 +84,5 @@ export function useActivity(address: Address | null, chain: MezoChainConfig | nu
     return () => clearInterval(t);
   }, [hasOpen, load]);
 
-  return { ...result, loading, refresh: load };
+  return { ...(loadedFor === scope ? result : EMPTY), loading, refresh: load };
 }

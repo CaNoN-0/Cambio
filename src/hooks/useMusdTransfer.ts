@@ -5,7 +5,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Hex } from 'viem';
-import { executeMusdTransfer, previewTransfer, type TransferDeps, type TransferParams, type TransferPreview } from '../lib/musdTransfer';
+import { executeMusdTransfer, previewTransfer, receiptHasTransfer, type TransferDeps, type TransferParams, type TransferPreview } from '../lib/musdTransfer';
 import { classifyTxError } from '../lib/txErrors';
 import { isBusy, phaseFromReceipt, summarizeReceipt, type TxPhase } from '../lib/transactions';
 import { createTransferDeps, getReceiptOrNull, getBlockTimestamp } from '../lib/wagmiDeps';
@@ -74,7 +74,12 @@ export function useMusdTransfer(depsOverride?: TransferDeps) {
         ts = null;
       }
       const summary = summarizeReceipt(receipt, ts);
-      const from = lastParams.current?.from;
+      const params = lastParams.current;
+      const from = params?.from;
+      if (summary.status === 'success' && (!params || params.chain.chainId !== chainId || !receiptHasTransfer(receipt, params.chain.tokens.MUSD.address, params.from, params.recipient as `0x${string}`, params.amount))) {
+        safeSet({ phase: 'unknown', hash, message: 'No matching MUSD Transfer event could be verified. Check the explorer.' });
+        return;
+      }
       if (from) {
         updateLedgerEntry(chainId, from, hash, {
           status: summary.status === 'success' ? 'confirmed' : 'reverted',

@@ -1,0 +1,13 @@
+
+> cambio@0.2.0 typecheck
+> tsc --noEmit
+
+src/hooks/useActivity.ts(21,11): error TS2451: Cannot redeclare block-scoped variable 'run'.
+src/hooks/useActivity.ts(27,11): error TS2451: Cannot redeclare block-scoped variable 'run'.
+src/hooks/useSwap.ts(24,11): error TS2451: Cannot redeclare block-scoped variable 'run'.
+src/hooks/useSwap.ts(31,11): error TS2451: Cannot redeclare block-scoped variable 'run'.
+src/lib/musdTransfer.ts(17,10): error TS2440: Import declaration conflicts with local declaration of 'receiptHasTransfer'.
+src/lib/musdTransfer.ts(18,10): error TS2323: Cannot redeclare exported variable 'receiptHasTransfer'.
+src/lib/musdTransfer.ts(18,10): error TS2484: Export declaration conflicts with exported declaration of 'receiptHasTransfer'.
+src/lib/musdTransfer.ts(109,17): error TS2323: Cannot redeclare exported variable 'receiptHasTransfer'.
+src/lib/musdTransfer.ts(113,18): error TS2304: Cannot find name 'decodeEventLog'.

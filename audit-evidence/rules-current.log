@@ -1,0 +1,48 @@
+
+> cambio@0.2.0 test:rules
+> firebase emulators:exec --only firestore --project demo-cambio "vitest run -c vitest.rules.config.ts"
+
+i  emulators: Starting emulators: firestore
+i  emulators: Detected demo project ID "demo-cambio", emulated services will use a demo configuration and attempts to access non-emulated services for this project will fail.
+i  firestore: Firestore Emulator logging to firestore-debug.log
++  firestore: Firestore Emulator was started in standard edition.
++  firestore: Firestore Emulator UI websocket is running on 9150.
+i  Running script: vitest run -c vitest.rules.config.ts
+
+ RUN  v5.0.5 C:/Users/LUSHEGS/Documents/Codex/2026-10-25/you-re-a-principal-software-engineer/work/Cambio
+
+(node:2328) MetadataLookupWarning: received unexpected error = All promises were rejected code = ETIMEDOUT, ENOTFOUND
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ❯ tests/rules/firestoreStore.test.ts (6 tests | 6 skipped) 10064ms
+(node:5908) MetadataLookupWarning: received unexpected error = All promises were rejected code = ETIMEDOUT, ENOTFOUND
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/rules/firestoreStore.test.ts [ tests/rules/firestoreStore.test.ts ]
+Error: Hook timed out in 10000ms.
+If this is a long-running hook, pass a timeout value as the last argument or configure it globally with "hookTimeout".
+ ❯ tests/rules/firestoreStore.test.ts:20:1
+     18| }
+     19|
+     20| beforeAll(async () => {
+       | ^
+     21|   if (!process.env.FIRESTORE_EMULATOR_HOST) throw new Error('FIRESTORE…
+     22|   app = initializeApp({ projectId: 'demo-cambio-store' }, `store-test-…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 2 passed (3)
+      Tests  8 passed | 6 skipped (14)
+   Start at  18:47:47
+   Duration  41.35s (tests 68%, import 30%, transform 2%)
+
+!  Script exited unsuccessfully (code 1)
+i  emulators: Shutting down emulators.
+i  firestore: Stopping Firestore Emulator
+!  Firestore Emulator has exited upon receiving signal: SIGINT
+i  hub: Stopping emulator hub
+i  logging: Stopping Logging Emulator
+
+Error: Script "vitest run -c vitest.rules.config.ts" exited with code 1

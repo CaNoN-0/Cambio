@@ -1,0 +1,13 @@
+
+> cambio@0.2.0 test
+> vitest run
+
+
+ RUN  v5.0.5 C:/Users/LUSHEGS/Documents/Codex/2026-10-25/you-re-a-principal-software-engineer/work/Cambio
+
+
+ Test Files  10 passed (10)
+      Tests  121 passed (121)
+   Start at  18:18:30
+   Duration  9.06s (import 47%, tests 38%, environment 11%, transform 4%)
+

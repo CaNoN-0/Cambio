@@ -1,0 +1,77 @@
+
+> cambio@0.2.0 test
+> vitest run
+
+
+ RUN  v5.0.5 C:/Users/LUSHEGS/Documents/Codex/2026-10-25/you-re-a-principal-software-engineer/work/Cambio
+
+ ❯ tests/musdTransfer.test.ts (0 test)
+ ❯ tests/paymentRequest.test.ts (0 test)
+ ❯ tests/release-safety.test.ts (0 test)
+ ❯ tests/swap.test.ts (11 tests | 1 failed) 77ms
+   ❯ executeSwap (7)
+     × approves the exact amount, re-quotes, simulates, swaps and reports the amount actually received 27ms
+ ❯ tests/ui.test.tsx (0 test)
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/musdTransfer.test.ts [ tests/musdTransfer.test.ts ]
+ FAIL  tests/paymentRequest.test.ts [ tests/paymentRequest.test.ts ]
+ FAIL  tests/release-safety.test.ts [ tests/release-safety.test.ts ]
+ FAIL  tests/ui.test.tsx [ tests/ui.test.tsx ]
+RolldownError: Parse failure: Parse failed with 1 error:
+Duplicated export 'receiptHasTransfer'
+11: import { formatTokenDisplay } from "/src/lib/amounts.ts";
+12: import { phaseFromReceipt, summarizeReceipt } from "/src/lib/transactions.ts";
+13: export { receiptHasTransfer } from "/src/lib/receiptEvidence.ts";
+             ^
+14: export const RECEIPT_TIMEOUT_MS = 12e4;
+15: function validateRecipient(chain, from, raw) {
+76: const sameAddr = (a, b) => a.toLowerCase() === b.toLowerCase();
+77: /** True when the receipt contains the exact MUSD Transfer(from, to, amount) event this transfer should emit. */
+78: export function receiptHasTransfer(receipt, token, from, to, amount) {
+                    ^
+79:   return receipt.logs.some((log) => {
+80:     if (!sameAddr(log.address, token)) return false;
+At file: /src/lib/musdTransfer.ts:13:9
+  File: /src/lib/musdTransfer.ts:13:9
+  11 |  import { formatTokenDisplay } from "/src/lib/amounts.ts";
+  12 |  import { phaseFromReceipt, summarizeReceipt } from "/src/lib/transactions.ts";
+  13 |  export { receiptHasTransfer } from "/src/lib/receiptEvidence.ts";
+     |           ^
+  14 |  export const RECEIPT_TIMEOUT_MS = 12e4;
+  15 |  function validateRecipient(chain, from, raw) {
+ ❯ error node_modules/rolldown/dist/shared/logs-D6uA606S.mjs:166:24
+ ❯ normalizeParseError node_modules/rolldown/dist/parse-ast-index.mjs:25:9
+ ❯ wrap node_modules/rolldown/dist/parse-ast-index.mjs:5:39
+ ❯ parseAstAsync node_modules/rolldown/dist/parse-ast-index.mjs:54:9
+ ❯ ssrTransformScript node_modules/vite/dist/node/chunks/node.js:16527:9
+ ❯ loadAndTransform node_modules/vite/dist/node/chunks/node.js:20218:64
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/swap.test.ts > executeSwap > approves the exact amount, re-quotes, simulates, swaps and reports the amount actually received
+AssertionError: expected 'unknown' to be 'confirmed' // Object.is equality
+
+Expected: "confirmed"
+Received: "unknown"
+
+ ❯ tests/swap.test.ts:81:29
+     79|     expect(deps.sendApprove).toHaveBeenCalledWith(expect.objectContain…
+     80|     expect(deps.simulateSwap).toHaveBeenCalledBefore(deps.sendSwap as …
+     81|     expect(out.phase.phase).toBe('confirmed');
+       |                             ^
+     82|     expect(out.received).toBe(1_268_000_000_000_000n);
+     83|     expect(phases.at(-1)).toBe('confirmed');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+
+ Test Files  5 failed | 5 passed (10)
+      Tests  1 failed | 59 passed (60)
+   Start at  18:17:49
+   Duration  11.55s (tests 48%, import 32%, environment 16%, transform 4%, worker 1%)
+

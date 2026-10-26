@@ -11,6 +11,19 @@ import { connectTestWallet, dismissUsernamePrompt, installTestWallet } from './t
 
 /** A public Mezo Testnet pool contract that holds MUSD and BTC. Used read-only ("watch" mode); no key exists for it here. */
 const FUNDED_WATCH_ADDRESS = MEZO_TESTNET.pools[0].address;
+const runtimeErrors = new WeakMap<Page, string[]>();
+test.beforeEach(async ({ page }) => {
+  const errors: string[] = []; runtimeErrors.set(page, errors);
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.addInitScript(() => {
+    (window as any).__cspViolations = [];
+    window.addEventListener('securitypolicyviolation', (event) => (window as any).__cspViolations.push(`${event.violatedDirective}: ${event.blockedURI}`));
+  });
+});
+test.afterEach(async ({ page }) => {
+  expect(runtimeErrors.get(page) ?? []).toEqual([]);
+  if (!page.isClosed()) expect(await page.evaluate(() => (window as any).__cspViolations ?? [])).toEqual([]);
+});
 
 function collectErrors(page: Page) {
   const errors: string[] = [];
@@ -216,4 +229,53 @@ test('@mobile core screens fit a phone without horizontal scrolling', async ({ p
   await page.goto(url);
   await expect(page.getByText(/signed by the recipient’s wallet/i)).toBeVisible();
   expect(await overflow()).toBeLessThanOrEqual(1);
+});
+
+test('hash navigation replaces the request recipient and resets verification', async ({ page, baseURL }) => {
+  const first = await signedLink(baseURL!); const second = await signedLink(baseURL!);
+  await page.goto(first.url); await expect(page.getByText(first.recipient, { exact: true })).toBeVisible();
+  await page.goto(second.url); await expect(page.getByText(second.recipient, { exact: true })).toBeVisible();
+  await expect(page.getByText(first.recipient, { exact: true })).toHaveCount(0);
+  await expect(page.getByText(/signed by the recipient’s wallet/i)).toBeVisible();
+  await page.reload(); await expect(page.getByText(second.recipient, { exact: true })).toBeVisible();
+});
+
+test('storage denial does not crash startup or theme controls', async ({ page }) => {
+  await page.addInitScript(() => {
+    const deny = () => { throw new DOMException('Storage disabled', 'SecurityError'); };
+    Object.defineProperty(window, 'localStorage', { get: deny });
+  });
+  await page.goto('/app'); await expect(page.getByText(/MUSD balance/i).first()).toBeVisible();
+  await page.getByRole('button', { name: /switch to dark mode/i }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+});
+
+test('direct routes, assets and API errors are served by production Express with CSP', async ({ request, page }) => {
+  for (const path of ['/app/activity', '/app/request', '/app/swap', '/app/settings', '/pay?to=0x0000000000000000000000000000000000000b0b']) {
+    const res = await request.get(path); expect(res.status()).toBe(200); expect(res.headers()['content-security-policy']).toContain("frame-ancestors 'none'");
+  }
+  for (const path of ['/manifest.json', '/logo.png', '/theme-init.js']) expect((await request.get(path)).status()).toBe(200);
+  expect((await request.get('/api/unknown')).status()).toBe(404);
+  expect((await request.get('/assets/not-a-real-chunk.js')).status()).toBe(404);
+  await page.goto('/app/settings'); await page.reload(); await expect(page.getByRole('heading', { name: /settings/i }).first()).toBeVisible();
+});
+
+test('recipient creates a signed request through its real wallet signature and opens it', async ({ page }) => {
+  await installTestWallet(page, { privateKey: generatePrivateKey() });
+  await page.goto('/app/request'); await connectTestWallet(page); await dismissUsernamePrompt(page);
+  await page.getByLabel(/amount/i).first().fill('5');
+  await page.getByRole('button', { name: /sign & create request/i }).click();
+  await expect(page.getByText('Signed request', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: /^preview$/i }).click();
+  await expect(page.getByText(/signed by the recipient’s wallet/i)).toBeVisible();
+});
+
+test('empty testnet pool is unavailable and quotes are labeled as test liquidity', async ({ page }) => {
+  await installTestWallet(page, { watchAddress: FUNDED_WATCH_ADDRESS });
+  await page.goto('/app/swap'); await connectTestWallet(page); await dismissUsernamePrompt(page);
+  await expect(page.getByText(/not market rates/i)).toBeVisible();
+  await page.getByRole('radio', { name: /^mUSDT$/ }).last().click();
+  await page.getByLabel(/you pay/i).fill('1');
+  await expect(page.getByText(/insufficient liquidity/i)).toBeVisible({ timeout: 30000 });
+  await expect(page.getByRole('button', { name: /review swap/i })).toBeDisabled();
 });

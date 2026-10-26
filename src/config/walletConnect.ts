@@ -70,6 +70,10 @@ export const appKit = createAppKit({
   networks: appKitNetworks,
   defaultNetwork,
   allowUnsupportedChain: false,
+  // Coinbase/Base's optional SDK connectors inject inline analytics even with AppKit analytics off.
+  // Their browser extensions remain available through EIP-6963, and mobile wallets via WalletConnect.
+  enableCoinbase: false,
+  enableBaseAccount: false,
   projectId,
   metadata,
   themeMode: 'light',

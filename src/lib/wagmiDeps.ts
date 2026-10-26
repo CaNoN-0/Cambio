@@ -45,7 +45,7 @@ export async function waitForReceipt(a: { chainId: number; hash: Hex; timeoutMs:
   return publicClientFor(a.chainId).waitForTransactionReceipt({ hash: a.hash, timeout: a.timeoutMs });
 }
 
-export async function getReceiptOrNull(chainId: number, hash: Hex): Promise<ReceiptLike | null> {
+export async function getReceiptOrNull(chainId: number, hash: Hex): Promise<ReceiptWithLogs | null> {
   try {
     return await publicClientFor(chainId).getTransactionReceipt({ hash });
   } catch (err) {

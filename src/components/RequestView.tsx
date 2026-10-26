@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { QrCode, Copy, Check, Share2, Download, ArrowRight, AlertCircle, Wallet, ExternalLink, Trash2, ShieldCheck, Loader2, RefreshCw, PenLine } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { signTypedData } from 'wagmi/actions';
@@ -56,6 +56,9 @@ export const RequestView: React.FC<RequestViewProps> = ({ wallet, onConnectWalle
   const chain = wallet.chain;
   const decimals = chain?.tokens.MUSD.decimals ?? 18;
   const isDemo = wallet.dataMode === 'demo';
+  const currentWallet = useRef('');
+  currentWallet.current = `${wallet.address}:${wallet.chainId}`;
+  const signLock = useRef(false);
 
   useEffect(() => {
     setRecent(wallet.address ? loadStoredRequests(wallet.address) : []);
@@ -90,6 +93,7 @@ export const RequestView: React.FC<RequestViewProps> = ({ wallet, onConnectWalle
 
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (signLock.current) return;
     setError(null);
     if (isDemo) return setError('Signed requests use your real wallet. Switch to real data to create one.');
     if (!wallet.isConnected || !wallet.address) return setError('Connect your wallet first. Requests pay out to your connected address.');
@@ -112,11 +116,14 @@ export const RequestView: React.FC<RequestViewProps> = ({ wallet, onConnectWalle
     }
 
     setSigning(true);
+    signLock.current = true;
+    const signingWallet = currentWallet.current;
     try {
       const signature = await signTypedData(wagmiConfig, { account: wallet.address, ...typedDataFor(req) });
       // Never share a link we could not verify ourselves.
       const ok = await verifyRequestSignature(req, signature, (args) => publicClientFor(chain.chainId).verifyTypedData(args));
       if (!ok) throw new Error('The wallet returned a signature that does not verify for this address.');
+      if (signingWallet !== currentWallet.current) throw new Error('The connected account or network changed. Create a new request.');
       const entry: StoredRequest = { request: req, signature };
       saveStoredRequest(entry);
       setRecent(loadStoredRequests(wallet.address));
@@ -126,6 +133,7 @@ export const RequestView: React.FC<RequestViewProps> = ({ wallet, onConnectWalle
       const c = classifyTxError(err);
       setError(c.code === 'rejected' ? 'Signing was cancelled in your wallet. No request was created.' : (err as Error).message || c.message);
     } finally {
+      signLock.current = false;
       setSigning(false);
     }
   };

@@ -11,6 +11,7 @@ import path from 'node:path';
 import { existsSync } from 'node:fs';
 import { createApiApp } from './app';
 import { bootstrapIdentity } from './bootstrap';
+import { securityHeaders, parseTrustProxy, parsePublicOrigin } from './securityHeaders';
 
 // A rejected promise inside a dependency (e.g. a gRPC credential refresh) must not take the whole
 // payments API down. Log it; request handlers already convert their own failures into 5xx responses.
@@ -19,24 +20,23 @@ process.on('unhandledRejection', (reason) => {
 });
 
 async function main() {
-  const { identity, error } = await bootstrapIdentity(process.env, 'production');
+  const publicOrigin = parsePublicOrigin(process.env.APP_URL);
+  const trustProxy = parseTrustProxy(process.env.TRUST_PROXY);
+  const { identity, error, rateLimitStore } = await bootstrapIdentity(process.env, 'production');
   const api = createApiApp({
     identity,
     identityInitError: error,
+    rateLimitStore,
     allowedOrigins: (process.env.ALLOWED_ORIGINS || '').split(',').map((s) => s.trim()).filter(Boolean),
-    publicOrigin: process.env.APP_URL && /^https?:\/\//.test(process.env.APP_URL) ? process.env.APP_URL : undefined,
+    publicOrigin,
     // Cloud Run and most PaaS put exactly one proxy in front; needed for correct client IPs in rate limiting.
-    trustProxy: process.env.TRUST_PROXY ?? 1,
+    trustProxy,
   });
 
   const app = express();
   app.disable('x-powered-by');
-  app.use((_req, res, next) => {
-    res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
-    next();
-  });
+  app.set('trust proxy', trustProxy);
+  app.use(securityHeaders);
   app.use(api);
 
   const dist = path.resolve(process.cwd(), 'dist');
@@ -45,6 +45,7 @@ async function main() {
     process.exit(1);
   }
   app.use(express.static(dist, { index: false, maxAge: '1h' }));
+  app.use('/assets', (_req, res) => { res.status(404).end(); });
   // SPA fallback for client-side routes such as /app/activity. Payment links use #pay, which never reaches the server.
   app.get(/^(?!\/api\/).*/, (_req, res) => {
     res.setHeader('Cache-Control', 'no-cache');

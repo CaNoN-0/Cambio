@@ -11,6 +11,8 @@ Cambio is for people and small businesses who want to get paid in MUSD (Mezo's b
 | "I paid you" is hard to verify | The payment transaction carries the request id in its calldata; anyone can check settlement on-chain from a proof link |
 | Wallet UIs hide what is happening | Every transfer shows network, token contract, recipient, RPC fee estimate and a receipt-based outcome |
 
+> **Release review (2026-10-25): NOT READY for submission until the blocked deployment and real testnet-payment gates in [SUBMISSION_READINESS.md](SUBMISSION_READINESS.md) are completed.** Local automated and read-only chain evidence is recorded there.
+
 > **Status:** hackathon MVP on **Mezo Testnet**. Not audited. Do not use with significant real funds. See [Residual risks](#residual-risks).
 
 ---
@@ -28,7 +30,7 @@ Cambio is for people and small businesses who want to get paid in MUSD (Mezo's b
 | Demo mode | **Simulated**, clearly labelled on every screen; never mixed into real history; swaps are not simulated at all | `tests/activity-ledger.test.ts`, `tests/balances.test.ts` |
 | Fiat estimates | Display-only. BTC/USD from CoinGecko/Coinbase with real timestamps; MUSD/mUSDC/mUSDT valued at their $1 peg | `src/services/liveRatesService.ts` |
 
-**Not verified in this environment:** an actual broadcast testnet transfer. The development sandbox had no funded testnet key (the Mezo faucet is CAPTCHA-protected), so no transaction was broadcast while building this. What *was* verified against the live chain: every contract address, token decimals, pool configuration, router quotes, pool fees, and successful `eth_call`/`eth_estimateGas` simulation of the exact transfer calldata Cambio sends (including the request-id suffix). Run `npm run verify:chain` to repeat those checks. The [judge demo](#judge-demonstration) performs a real transfer with your own testnet wallet.
+**Not verified in this environment:** an actual broadcast testnet transfer. The development sandbox had no funded testnet key (the Mezo faucet is CAPTCHA-protected), so no transaction was broadcast while building this. What *was* verified against the live chain: configured contract addresses, token decimals, pool configuration, router quotes, pool fees, and successful `eth_call`/`eth_estimateGas` simulation of the exact transfer calldata Cambio sends (including the request-id suffix). Run `npm run verify:chain` to repeat those checks. The [judge demo](#judge-demonstration) performs a real transfer with your own testnet wallet.
 
 ---
 
@@ -70,7 +72,7 @@ Key modules:
 
 ## Networks and verified contracts
 
-Verified on 2026-10-22 against the official Mezo docs ([contracts reference](https://mezo.org/docs/users/resources/contracts-reference), [Mezo Pools](https://mezo.org/docs/developers/features/mezo-pools)) **and** on-chain (`npm run verify:chain`).
+Verified on 2026-10-25 against the official Mezo docs ([contracts reference](https://mezo.org/docs/users/resources/contracts-reference), [Mezo Pools](https://mezo.org/docs/developers/features/mezo-pools)) **and** on-chain (`npm run verify:chain`).
 
 | | Mezo Testnet (default) | Mezo Mainnet (off by default) |
 | --- | --- | --- |
@@ -90,16 +92,16 @@ Findings from verification:
 - Testnet pool fees differ from the documented mainnet values, so fees are always read from `PoolFactory.getFee`.
 - The testnet MUSD/mUSDT pool exists but has **no liquidity**; Cambio reports "insufficient liquidity" for that pair on testnet. The testnet MUSD/mUSDC pool is off-peg (≈0.84) — test liquidity, not a market price.
 
-To enable mainnet, build with `VITE_ENABLE_MAINNET=true`. Mainnet screens are labelled "real funds".
+Mainnet remains disabled in this release candidate. The frontend build flag is not sufficient to launch mainnet identity: the backend now only authorizes testnet by default, and cross-chain contract-wallet identities require a separately reviewed design.
 
 ---
 
 ## Local setup
 
-Prerequisites: Node.js ≥ 20.19 (22 recommended) and npm or bun.
+Prerequisites: Node.js ≥ 22.12 (Node 24.20.0 and npm 11.19.0 used for this review), npm, and Java 21 for Firestore emulator tests. The committed npm lockfile is authoritative.
 
 ```bash
-npm install                # or: bun install
+npm ci                     # reproducible install from package-lock.json
 cp .env.example .env.local # set VITE_WALLETCONNECT_PROJECT_ID
 npm run dev                # http://localhost:3000 (Vite + the same Express API)
 ```
@@ -107,7 +109,7 @@ npm run dev                # http://localhost:3000 (Vite + the same Express API)
 In development, when no Firestore credentials or emulator are configured, the identity API uses an **in-memory** store. Signatures are still fully verified, but names are lost on restart; the UI shows a "Development registry" notice. To use Firestore locally:
 
 ```bash
-npx firebase-tools emulators:start --only firestore --project demo-cambio   # terminal 1
+npx firebase emulators:start --only firestore --project demo-cambio   # terminal 1
 FIRESTORE_EMULATOR_HOST=127.0.0.1:8085 FIREBASE_PROJECT_ID=demo-cambio npm run dev   # terminal 2
 ```
 
@@ -138,7 +140,7 @@ FIRESTORE_EMULATOR_HOST=127.0.0.1:8085 FIREBASE_PROJECT_ID=demo-cambio npm run d
 
 **Request.** The recipient signs an EIP-712 `PaymentRequest{id, recipient, token, amount, memo, createdAt, expiresAt}` under domain `{name: "Cambio", version: "2", chainId}`. The link (`/#pay?r=<base64url JSON>&s=<signature>`) needs no server. The payer's browser validates the payload strictly (supported chain, MUSD token for that chain, address, amount, memo length, 90-day max expiry), verifies the signature (EOA or ERC-1271), and only then offers payment with recipient and amount locked.
 
-**Settlement.** The payment calls `MUSD.transfer(recipient, amount)` with a 20-byte calldata suffix `"CMB2" ‖ requestId` (ignored by the token; verified to simulate successfully on both networks). A request is "paid" only when a transaction's input equals that exact calldata, its receipt succeeded, and the receipt contains the matching `Transfer` event. The payer gets a proof link (`…&tx=<hash>`); the recipient can also scan their incoming transfers ("Check paid"). Opening, scanning or "marking" a request never changes its status.
+**Settlement.** The payment calls `MUSD.transfer(recipient, amount)` with a 20-byte calldata suffix `"CMB2" ‖ requestId` (ignored by the token; verified to simulate successfully on both networks). A request is "paid" only after its signature is verified and a transaction on the expected chain has that exact calldata, a successful receipt, the matching `Transfer` event and a readable block timestamp at or after request creation. Payments at or after expiry are labeled late. The payer gets a proof link (`…&tx=<hash>`); the recipient can also scan their incoming transfers ("Check paid"). Opening, scanning or "marking" a request never changes its status.
 
 **Unsigned links** (`#pay?to=…&amt=…`, from the Receive screen) still work, but are shown with an "Unsigned link — check the address" warning. Legacy prototype links are treated as unsigned and their embedded username is ignored.
 
@@ -156,7 +158,7 @@ If the registry is unavailable the API answers **503** and the UI says so; sendi
 
 - **Non-custodial:** no private keys, seed phrases or custodial signing anywhere. Every transaction and signature is approved in the user's wallet.
 - **Firestore rules:** deny by default; clients can only `get` single verified registry documents; all writes go through the verified backend; challenges, legacy collections, per-wallet history and preferences are closed. Tested against the emulator, including tests that **fail on the original rules** (cross-wallet history/preference access and username impersonation).
-- **API:** strict input validation, 4 KB JSON limit, per-IP rate limits (10 mutations/min, 120 lookups/min, per instance), no wildcard CORS, no stack traces in responses, `Cache-Control: no-store`, security headers.
+- **API:** strict input validation, 4 KB JSON limit, per-IP rate limits (10 mutations/min, 120 lookups/min; atomic shared Firestore counters when Firestore is configured, in-memory counters in local memory mode), no wildcard CORS, no stack traces in responses, `Cache-Control: no-store`, security headers.
 - **Swaps:** exact-amount approvals only (never unlimited), fresh on-chain re-quote and `simulateContract` before signing, router-enforced minimum output, 20-minute deadline, quotes expire after 30 s and must be re-reviewed, swaps above 15% price impact are blocked.
 - **Data honesty:** no generated hashes, no timer-based confirmations, no optimistic balance deductions, no synthetic prices or price jitter, no faked network responses (the prototype's global `fetch` patch that returned fake `200` responses was removed). RPC failures render as "Unavailable", not `0.00`.
 - **Untrusted input:** payment links, explorer data and localStorage contents are validated before use; CSV export neutralises spreadsheet formulas; memos are rendered as text.
@@ -172,25 +174,19 @@ npm start                    # NODE_ENV=production node server.js, listens on $P
 
 1. Set `VITE_WALLETCONNECT_PROJECT_ID` at build time and allow-list your origin in Reown.
 2. Grant the service account **Cloud Datastore User** on the Firebase project in `firebase-applet-config.json` (or set `FIREBASE_PROJECT_ID` / `FIRESTORE_DATABASE_ID`).
-3. Deploy the rules: `npx firebase-tools deploy --only firestore:rules --project <project>` (`firebase.json` targets the app's named database).
-4. Check `GET /api/health`: `{"identity":{"available":true,"durable":true}}`. Without credentials the server still serves the app and payments, but identity answers 503.
+3. Deploy the rules: `npx firebase deploy --only firestore:rules --project <project>` (`firebase.json` targets the app's named database).
+4. Set `APP_URL` explicitly to the public HTTP(S) origin and configure `TRUST_PROXY` for your actual ingress. Do not assume Cloud Run injects `APP_URL`.
+5. Check `GET /api/health`: `{"identity":{"available":true,"durable":true}}`. Without credentials the server still serves the app and payments, but identity answers 503.
 
 `vite preview` does not run the API; use `npm start`. Vite's dev middleware is development-only and is not part of the production server.
 
 ## Testing evidence
 
-All of the following were run while preparing this version (2026-10-23):
+See [SUBMISSION_READINESS.md](SUBMISSION_READINESS.md) and its evidence files for the commands and results observed during the 2026-10-25 review. Earlier claimed results are not used as current evidence. The test wallet signs genuine EIP-191/EIP-712 messages with disposable test keys, reads live testnet state, and rejects every broadcast. It cannot prove an actual payment succeeded.
 
-| Suite | Result |
-| --- | --- |
-| `npm run typecheck` (strict) | pass |
-| `npm test` | 9 files, 112 tests passed |
-| `npm run test:rules` (Firestore emulator 1.22.0) | 3 files, 12 tests passed |
-| `npm run test:e2e` (Chromium, production build, live testnet reads) | 13 tests passed (12 desktop + 1 mobile) |
-| `npm run verify:chain` | all checks passed (1 warning: empty testnet MUSD/mUSDT pool) |
-| `npm run build` | pass |
+Production browser tests check CSP violations and unhandled runtime errors as well as payment, identity, startup, navigation and mobile behavior. Coinbase/Base SDK connectors that injected inline telemetry are disabled; injected EIP-6963 extensions and WalletConnect remain supported. When storage is denied, wallet SDKs receive an explicitly labeled, session-only memory store.
 
-Automated tests use deterministic doubles for the wallet; they prove state handling, not that a live transaction succeeded. The e2e suite injects a test wallet that signs with a throwaway key, reads real chain state, and always declines `eth_sendTransaction`.
+lint is the repository's existing alias for TypeScript checking; there is no independent ESLint suite. The manifest is metadata only: Cambio has no service worker, offline-payment capability, or verified installable PWA.
 
 ## Judge demonstration
 
@@ -210,9 +206,9 @@ About 5 minutes, two browsers (or a browser + a phone wallet):
 ## Known limitations
 
 - Single-hop swaps on the three verified MUSD pools only; no multi-hop routing or CL (Slipstream) pools.
-- History comes from the Mezo explorer index (latest 50 MUSD transfers) with an RPC fallback limited to ~11 hours (RPC `getLogs` caps ranges at 10,000 blocks). Non-MUSD swap legs appear from this device's ledger only.
+- History comes from the Mezo explorer index (latest 50 MUSD transfers) with an RPC fallback over up to the latest 10,000 blocks. Non-MUSD swap legs appear from this device's ledger only.
 - Private transfer notes and the request list are stored in the browser that created them.
-- Rate limiting is per server instance.
+- Firestore identity uses shared atomic rate limiting. Set the correct `TRUST_PROXY` hop count (0 for direct Node; 1 only behind one trusted proxy) and enable a Firestore TTL policy on `identity_rate_limits.expiresAt` to clean up old IP buckets. Local memory mode limits remain per instance.
 - Demo mode simulates balances, history and transfers, not swaps.
 - The WalletConnect project ID falls back to a shared evaluation ID when unset; set your own for any deployment.
 
@@ -222,8 +218,10 @@ Address these before exposing real funds or public users:
 
 - **No audit.** Neither the app nor its use of Mezo contracts has been audited. Mainnet is disabled by default for this reason.
 - **No end-to-end broadcast was performed in CI.** Real transfers were not executed in the build environment (see above); run the judge demo on testnet before relying on it.
-- **Front-end supply chain:** wallet SDKs and dependencies run in the page. Add a Content Security Policy and dependency pinning/auditing for production.
+- **Front-end supply chain:** wallet SDKs run in the page. Production now has a restrictive CSP and an npm lockfile. Remaining high-severity dependency alerts affect transitive Zod 3 validation in wallet SDKs; a safe compatible fix is not published. See the advisory assessment in SUBMISSION_READINESS.md.
 - **Explorer trust:** history and "Check paid" scanning depend on Blockscout; settlement verification itself re-reads the transaction and receipt from the RPC.
 - **Look-alike names:** ASCII-only names prevent Unicode homoglyphs, but `0`/`o` and `1`/`l` look-alikes remain possible. The review screen always shows the full address.
-- **Registry availability and abuse:** in-memory rate limits do not coordinate across instances; add a shared limiter (e.g. Cloud Armor) for public launch.
+- **Registry availability and abuse:** Firestore rate limits coordinate instances, fail closed when unavailable, and cost database operations. A trusted ingress / WAF is still needed for volumetric attacks. Production credentials, IAM, named database and TTL configuration require live operator verification.
 - **Testnet liquidity is not a market:** testnet swap prices and pegs can be far from real values.
+
+Browser activity labels explorer records as **Indexed**. Signed-request settlement is a separate RPC verification. Cached local confirmations are rechecked and become unknown if their receipts or transfer evidence cannot be verified.

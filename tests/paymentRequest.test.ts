@@ -99,7 +99,7 @@ describe('signed payment links', () => {
       `${ORIGIN}/#pay?r=%%%&s=0x00`,
       `${ORIGIN}/#pay?r=${Buffer.from('not json').toString('base64url')}&s=0x${'00'.repeat(65)}`,
       url.replace(/&s=0x[0-9a-f]+/, ''),
-      url.replace(/&s=0x[0-9a-f]+/, '&s=0x1234'),
+      url.replace(/&s=0x[0-9a-f]+/, '&s=0x123'),
       tamper(url, (r) => ((r as unknown as Record<string, unknown>).extra = 1)),
       tamper(url, (r) => (r.amount = '-5')),
       tamper(url, (r) => (r.amount = '0')),

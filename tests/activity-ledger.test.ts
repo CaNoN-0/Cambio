@@ -47,6 +47,11 @@ describe('explorer-derived history', () => {
     const down = (async () => new Response('bad gateway', { status: 502 })) as typeof fetch;
     await expect(fetchExplorerActivity(MEZO_TESTNET, ALICE, down)).rejects.toThrow(/502/);
   });
+  it('rejects malformed explorer responses and deduplicates indexed events', async () => {
+    const malformed = (async () => Response.json({ unavailable: true })) as typeof fetch;
+    await expect(fetchExplorerActivity(MEZO_TESTNET, ALICE, malformed)).rejects.toThrow(/Malformed/);
+    expect(parseExplorerTransfers({ items: [row(), row()] }, ALICE, MEZO_TESTNET)).toHaveLength(1);
+  });
 });
 
 describe('local ledger', () => {
@@ -70,6 +75,11 @@ describe('local ledger', () => {
       { ...entry(), hash: '0xfake' },
       { ...entry(), amount: '12.5' },
       { ...entry(), status: 'completed' },
+      { ...entry(), decimals: -1 },
+      { ...entry(), decimals: 1000000 },
+      { ...entry(), symbol: null },
+      { ...entry(), memo: { untrusted: true } },
+      { ...entry(), kind: 'swap', swap: { tokenOut: MUSD } },
     ]));
     expect(readLedger(31611, ALICE, s)).toEqual([]);
   });

@@ -10,7 +10,7 @@
  *  - minAmountOut = amountOut × (1 − slippage), enforced by the router; a fresh re-quote below it aborts.
  */
 
-import { decodeEventLog, type Address, type Hex } from 'viem';
+import { type Address, type Hex } from 'viem';
 import { erc20Abi, poolFactoryAbi, routerAbi } from '../config/abis';
 import { findPool, type MezoChainConfig, type TokenConfig } from '../config/chains';
 import { applySlippage } from './amounts';
@@ -22,6 +22,7 @@ export type SwapSymbol = TokenConfig['symbol'];
 export const QUOTE_TTL_MS = 30_000;
 export const SWAP_DEADLINE_SECONDS = 20 * 60;
 export const MAX_SLIPPAGE_BPS = 500;
+export const MAX_PRICE_IMPACT_BPS = 1500;
 
 export interface Route {
   from: Address;
@@ -79,7 +80,7 @@ export function priceImpactBps(amountIn: bigint, amountOut: bigint, probeIn: big
 }
 
 export function isQuoteExpired(q: SwapQuote, now = Date.now()): boolean {
-  return now - q.fetchedAt > QUOTE_TTL_MS;
+  return now < q.fetchedAt || now - q.fetchedAt >= QUOTE_TTL_MS;
 }
 
 export async function fetchSwapQuote(
@@ -147,20 +148,8 @@ export interface SwapDeps {
   now?(): number;
 }
 
-/** Amount of tokenOut actually received by `to`, summed from the receipt's Transfer events. */
-export function receivedFromReceipt(receipt: ReceiptWithLogs, token: Address, to: Address): bigint {
-  let total = 0n;
-  for (const log of receipt.logs) {
-    if (log.address.toLowerCase() !== token.toLowerCase()) continue;
-    try {
-      const ev = decodeEventLog({ abi: erc20Abi, data: log.data, topics: log.topics as [Hex, ...Hex[]] });
-      if (ev.eventName === 'Transfer' && ev.args.to.toLowerCase() === to.toLowerCase()) total += ev.args.value;
-    } catch {
-      // not a Transfer
-    }
-  }
-  return total;
-}
+export { receivedFromReceipt } from './receiptEvidence';
+import { ledgerReceiptStatus, receivedFromReceipt } from './receiptEvidence';
 
 export interface SwapOutcome {
   phase: TxPhase;
@@ -186,6 +175,8 @@ export async function executeSwap(deps: SwapDeps, chain: MezoChainConfig, from: 
   try {
     onPhase({ phase: 'preparing', step: 'Checking balances and quote' });
     assertConn();
+    if (quote.priceImpactBps === null || quote.priceImpactBps > MAX_PRICE_IMPACT_BPS) throw new TxPreflightError('invalid_input', 'Price impact is unavailable or above 15%. Refresh and reduce the amount.');
+    if (quote.minAmountOut <= 0n) throw new TxPreflightError('invalid_input', 'Minimum output must be greater than zero.');
     if (isQuoteExpired(quote, now())) throw new TxPreflightError('invalid_input', 'This quote expired. Refresh it and review again.');
     const [balance, native] = await Promise.all([
       deps.readTokenBalance({ chainId: chain.chainId, token: quote.tokenIn.address, owner: from }),
@@ -224,11 +215,13 @@ export async function executeSwap(deps: SwapDeps, chain: MezoChainConfig, from: 
   try {
     onPhase({ phase: 'preparing', step: 'Re-checking the price on-chain' });
     const fresh = await fetchSwapQuote(deps.quoteClient, chain, quote.tokenIn.symbol, quote.tokenOut.symbol, quote.amountIn, quote.slippageBps, now());
+    if (fresh.priceImpactBps === null || fresh.priceImpactBps > MAX_PRICE_IMPACT_BPS) throw new TxPreflightError('invalid_input', 'Fresh price impact is unavailable or above 15%.');
     if (fresh.amountOut < quote.minAmountOut) {
       throw new TxPreflightError('invalid_input', 'The price moved beyond your slippage tolerance. Review the updated quote.');
     }
     assertConn();
     await deps.simulateSwap({ chainId: chain.chainId, from, quote, deadline });
+    assertConn();
   } catch (err) {
     return fail(err);
   }
@@ -272,12 +265,14 @@ export async function executeSwap(deps: SwapDeps, chain: MezoChainConfig, from: 
     ts = null;
   }
   const summary = summarizeReceipt(receipt, ts);
-  const received = summary.status === 'success' ? receivedFromReceipt(receipt, quote.tokenOut.address, from) : null;
+  const status = ledgerReceiptStatus({ kind: 'swap', token: quote.tokenIn.address, from, amount: quote.amountIn.toString(), swap: { tokenOut: quote.tokenOut.address, minAmountOut: quote.minAmountOut.toString() } } as LedgerEntry, receipt);
+  const received = status === 'confirmed' ? receivedFromReceipt(receipt, quote.tokenOut.address, from) : null;
   deps.updateLedger?.(chain.chainId, from, hash, {
-    status: summary.status === 'success' ? 'confirmed' : 'reverted',
+    status,
     blockNumber: summary.blockNumber,
     blockTimestamp: ts,
     swap: { tokenOut: quote.tokenOut.address, symbolOut: quote.tokenOut.symbol, decimalsOut: quote.tokenOut.decimals, minAmountOut: quote.minAmountOut.toString(), amountOut: received?.toString() },
   });
+  if (status === 'unknown') return finish({ phase: 'unknown', hash, message: 'The receipt does not prove the expected swap input and minimum output. Verify on the explorer before relying on it.' });
   return finish(phaseFromReceipt(hash, summary), received);
 }

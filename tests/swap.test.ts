@@ -65,7 +65,7 @@ describe('executeSwap', () => {
       sendApprove: vi.fn(async () => ('0x' + '0a'.repeat(32)) as Hex),
       simulateSwap: vi.fn(async () => undefined),
       sendSwap: vi.fn(async () => HASH),
-      waitForReceipt: vi.fn(async ({ hash }) => (hash === HASH ? receipt('success', [transferLog(BTC, C.router, ALICE, 1_268_000_000_000_000n)]) : receipt('success'))),
+      waitForReceipt: vi.fn(async ({ hash }) => (hash === HASH ? receipt('success', [transferLog(C.tokens.MUSD.address, ALICE, C.pools[0].address, 100n * ONE), transferLog(BTC, C.router, ALICE, 1_268_000_000_000_000n)]) : receipt('success'))),
       getBlockTimestamp: async () => 1,
       ...over,
     };

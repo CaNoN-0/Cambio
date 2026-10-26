@@ -1,0 +1,72 @@
+
+> cambio@0.2.0 test:e2e
+> playwright test
+
+[WebServer] (node:17328) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+[WebServer]   - import "./server/app" without a file extension (vite.config.ts:15:45). Add the file extension
+[WebServer]   - import "./server/bootstrap" without a file extension (vite.config.ts:16:50). Add the file extension
+[WebServer]   - import "./identity/service" without a file extension (server/bootstrap.ts:20:33). Add the file extension
+[WebServer]   - import "./identity/service" without a file extension (server/app.ts:10:91). Add the file extension
+[WebServer]   - import "./rateLimit" without a file extension (server/app.ts:11:27). Add the file extension
+[WebServer]   - import "./identity/memoryStore" without a file extension (server/bootstrap.ts:21:37). Add the file extension
+[WebServer]   - import "./identity/store" without a file extension (server/bootstrap.ts:22:36). Add the file extension
+[WebServer]   - import "./identity/firestoreStore" without a file extension (server/bootstrap.ts:41:51). Add the file extension
+[WebServer]   - import "../../src/config/chains" without a file extension (server/identity/service.ts:18:44). Add the file extension
+[WebServer]   - import "./store" without a file extension (server/identity/firestoreStore.ts:18:134). Add the file extension
+[WebServer]   - import "./store" without a file extension (server/identity/memoryStore.ts:10:111). Add the file extension
+[WebServer]   - import "../../shared/username" without a file extension (server/identity/service.ts:19:50). Add the file extension
+[WebServer]   - import "./store" without a file extension (server/identity/service.ts:20:98). Add the file extension
+[WebServer] Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+[WebServer] ✗ Build failed in 1.59s
+[WebServer] error during build:
+[WebServer] Build failed with 3 errors:
+[WebServer] 
+[WebServer] [PARSE_ERROR] Identifier `run` has already been declared
+[WebServer]     ╭─[ src/hooks/useActivity.ts:21:9 ]
+[WebServer]     │
+[WebServer]  21 │        const run = ++seq.current;
+[WebServer]     │              ─┬─  
+[WebServer]     │               ╰─── `run` has already been declared here
+[WebServer]     │ 
+[WebServer]  27 │        const run = ++seq.current;
+[WebServer]     │              ─┬─  
+[WebServer]     │               ╰─── It can not be redeclared here
+[WebServer] ────╯
+[WebServer] 
+[WebServer] [PARSE_ERROR] Duplicated export 'receiptHasTransfer'
+[WebServer]     ╭─[ src/lib/musdTransfer.ts:13:10 ]
+[WebServer]     │
+[WebServer]  13 │ export { receiptHasTransfer } from "./receiptEvidence";
+[WebServer]     │          ─────────┬────────  
+[WebServer]     │                   ╰────────── Export has already been declared here
+[WebServer]     │ 
+[WebServer]  78 │ export function receiptHasTransfer(receipt, token, from, to, amount) {
+[WebServer]     │                 ─────────┬────────  
+[WebServer]     │                          ╰────────── It cannot be redeclared here
+[WebServer] ────╯
+[WebServer] 
+[WebServer] [PARSE_ERROR] Identifier `run` has already been declared
+[WebServer]     ╭─[ src/hooks/useSwap.ts:18:9 ]
+[WebServer]     │
+[WebServer]  18 │        const run = ++seq.current;
+[WebServer]     │              ─┬─  
+[WebServer]     │               ╰─── `run` has already been declared here
+[WebServer]     │ 
+[WebServer]  25 │        const run = ++seq.current;
+[WebServer]     │              ─┬─  
+[WebServer]     │               ╰─── It can not be redeclared here
+[WebServer] ────╯
+[WebServer] 
+[WebServer]     at aggregateBindingErrorsIntoJsError (file:///C:/Users/LUSHEGS/Documents/Codex/2026-10-25/you-re-a-principal-software-engineer/work/Cambio/node_modules/rolldown/dist/shared/error-CBG33oNV.mjs:49:18)
+[WebServer]     at unwrapBindingResult (file:///C:/Users/LUSHEGS/Documents/Codex/2026-10-25/you-re-a-principal-software-engineer/work/Cambio/node_modules/rolldown/dist/shared/error-CBG33oNV.mjs:19:128)
+[WebServer]     at #build (file:///C:/Users/LUSHEGS/Documents/Codex/2026-10-25/you-re-a-principal-software-engineer/work/Cambio/node_modules/rolldown/dist/shared/rolldown-BYX6bV3R.mjs:146:34)
+[WebServer]     at async buildEnvironment (file:///C:/Users/LUSHEGS/Documents/Codex/2026-10-25/you-re-a-principal-software-engineer/work/Cambio/node_modules/vite/dist/node/chunks/node.js:34716:66)
+[WebServer]     at async Object.build (file:///C:/Users/LUSHEGS/Documents/Codex/2026-10-25/you-re-a-principal-software-engineer/work/Cambio/node_modules/vite/dist/node/chunks/node.js:35137:19)
+[WebServer]     at async Object.buildApp (file:///C:/Users/LUSHEGS/Documents/Codex/2026-10-25/you-re-a-principal-software-engineer/work/Cambio/node_modules/vite/dist/node/chunks/node.js:35134:153)
+[WebServer]     at async CAC.<anonymous> (file:///C:/Users/LUSHEGS/Documents/Codex/2026-10-25/you-re-a-principal-software-engineer/work/Cambio/node_modules/vite/dist/node/cli.js:780:3) {
+[WebServer]   errors: [Getter/Setter]
+[WebServer] }
+Error: Process from config.webServer was not able to start. Exit code: 1
+

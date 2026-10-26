@@ -6,6 +6,7 @@ import { getKnownChainConfig, explorerTxUrl } from '../config/chains';
 import { TransactionRow } from './TransactionRow';
 import { TransactionDetailModal } from './TransactionDetailModal';
 import { HalftonePattern } from './HalftonePattern';
+import { csvCell } from '../lib/csv';
 
 interface ActivityViewProps {
   transactions: ActivityItem[];
@@ -16,12 +17,6 @@ interface ActivityViewProps {
   onRefresh?: () => void;
   onOpenSend: () => void;
   onOpenReceive: () => void;
-}
-
-/** CSV fields are quoted and formula-leading characters neutralised, so an exported file cannot run spreadsheet formulas. */
-function csvCell(v: string): string {
-  const safe = /^[=+\-@\t\r]/.test(v) ? `'${v}` : v;
-  return `"${safe.replace(/"/g, '""')}"`;
 }
 
 export const ActivityView: React.FC<ActivityViewProps> = ({

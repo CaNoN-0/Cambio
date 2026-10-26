@@ -1,0 +1,10 @@
+error Executing inline script violates the following Content Security Policy directive 'script-src 'self' 'wasm-unsafe-eval''. Either the 'unsafe-inline' keyword, a hash ('sha256-NzvNrqk5jB9YZATwo5BF4JoRlJ02HsnFikbKXgEPdaQ='), or a nonce ('nonce-...') is required to enable inline execution. The action has been blocked.
+error Executing inline script violates the following Content Security Policy directive 'script-src 'self' 'wasm-unsafe-eval''. Either the 'unsafe-inline' keyword, a hash ('sha256-NzvNrqk5jB9YZATwo5BF4JoRlJ02HsnFikbKXgEPdaQ='), or a nonce ('nonce-...') is required to enable inline execution. The action has been blocked.
+SCRIPT-TAGS [
+  { src: 'http://localhost:4182/theme-init.js', type: '', text: '' },
+  {
+    src: 'http://localhost:4182/assets/index-DAKvYvve.js',
+    type: 'module',
+    text: ''
+  }
+]

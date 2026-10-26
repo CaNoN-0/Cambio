@@ -11,27 +11,20 @@ interface ThemeContextType {
   toggleTheme: () => void;
 }
 
+function savedTheme(): ThemePreference {
+  try {
+    const saved = localStorage.getItem('cambio_theme');
+    if (saved === 'light' || saved === 'dark' || saved === 'system') return saved;
+  } catch { /* Browser storage is optional. */ }
+  return 'light';
+}
+
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [theme, setThemeState] = useState<ThemePreference>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('cambio_theme') as ThemePreference;
-      if (saved === 'light' || saved === 'dark') {
-        return saved;
-      }
-    }
-    return 'light';
-  });
+  const [theme, setThemeState] = useState<ThemePreference>(savedTheme);
 
-  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('cambio_theme') as ThemePreference;
-      if (saved === 'dark') return 'dark';
-      return 'light';
-    }
-    return 'light';
-  });
+  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>(() => savedTheme() === 'dark' || (savedTheme() === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light');
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
@@ -79,7 +72,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const setTheme = (newTheme: ThemePreference) => {
     setThemeState(newTheme);
-    localStorage.setItem('cambio_theme', newTheme);
+    try { localStorage.setItem('cambio_theme', newTheme); } catch { /* Keep the preference for this session. */ }
   };
 
   const toggleTheme = () => {

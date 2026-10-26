@@ -1,0 +1,51 @@
+
+> cambio@0.2.0 test:e2e
+> playwright test
+
+[WebServer] (node:21728) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+[WebServer]   - import "./server/app" without a file extension (vite.config.ts:15:45). Add the file extension
+[WebServer]   - import "./server/bootstrap" without a file extension (vite.config.ts:16:50). Add the file extension
+[WebServer]   - import "./identity/service" without a file extension (server/bootstrap.ts:20:33). Add the file extension
+[WebServer]   - import "./identity/service" without a file extension (server/app.ts:10:91). Add the file extension
+[WebServer]   - import "./identity/memoryStore" without a file extension (server/bootstrap.ts:21:37). Add the file extension
+[WebServer]   - import "./rateLimit" without a file extension (server/app.ts:11:54). Add the file extension
+[WebServer]   - import "./identity/store" without a file extension (server/bootstrap.ts:22:36). Add the file extension
+[WebServer]   - import "./rateLimit" without a file extension (server/bootstrap.ts:23:43). Add the file extension
+[WebServer]   - import "./identity/firestoreStore" without a file extension (server/bootstrap.ts:43:51). Add the file extension
+[WebServer]   - import "../../src/config/chains" without a file extension (server/identity/service.ts:18:44). Add the file extension
+[WebServer]   - import "../../shared/username" without a file extension (server/identity/service.ts:19:50). Add the file extension
+[WebServer]   - import "./store" without a file extension (server/identity/service.ts:20:98). Add the file extension
+[WebServer]   - import "./store" without a file extension (server/identity/memoryStore.ts:10:111). Add the file extension
+[WebServer]   - import "../../shared/username" without a file extension (server/identity/firestoreStore.ts:20:34). Add the file extension
+[WebServer]   - import "./store" without a file extension (server/identity/firestoreStore.ts:21:134). Add the file extension
+[WebServer] Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+[WebServer] [identity] Using the in-memory store: usernames are NOT durable and NOT shared across instances.
+
+Running 18 tests using 2 workers
+
+(node:25316) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:5356) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok  1 [desktop] › tests\e2e\app.spec.ts:48:1 › landing → dashboard loads without runtime errors and serves the API (9.1s)
+  ok  2 [mobile] › tests\e2e\app.spec.ts:219:1 › @mobile core screens fit a phone without horizontal scrolling (10.7s)
+  ok  3 [desktop] › tests\e2e\app.spec.ts:59:1 › receive shows no address at all until a wallet is connected (2.1s)
+  ok  4 [desktop] › tests\e2e\app.spec.ts:66:1 › connecting reads real Mezo Testnet balances (BTC and MUSD separately) (5.2s)
+  ok  5 [desktop] › tests\e2e\app.spec.ts:77:1 › claims a @username with a real wallet signature verified by the server, then resolves it from another session (11.9s)
+  ok  6 [desktop] › tests\e2e\app.spec.ts:108:1 › a declined signature does not claim a username (5.1s)
+  ok  7 [desktop] › tests\e2e\app.spec.ts:120:1 › a signed request opened in a separate session runs the real on-chain preflight, then respects a wallet rejection (15.2s)
+  ok  8 [desktop] › tests\e2e\app.spec.ts:142:1 › a tampered signed link is refused before any payment UI is offered (3.3s)
+  ok  9 [desktop] › tests\e2e\app.spec.ts:154:1 › expired and malformed links are not payable (1.7s)
+  ok 10 [desktop] › tests\e2e\app.spec.ts:162:1 › sending more MUSD than the wallet really holds is stopped by a live balance check (5.8s)
+  ok 11 [desktop] › tests\e2e\app.spec.ts:175:1 › a network change in the wallet is detected, hides balances, and can be switched back from the app (6.7s)
+  ok 12 [desktop] › tests\e2e\app.spec.ts:194:1 › swap shows a live router quote with the on-chain pool fee, and stops at the wallet (6.4s)
+  ok 13 [desktop] › tests\e2e\app.spec.ts:207:1 › disconnecting clears wallet state (5.3s)
+  ok 14 [desktop] › tests\e2e\app.spec.ts:234:1 › hash navigation replaces the request recipient and resets verification (4.1s)
+  ok 15 [desktop] › tests\e2e\app.spec.ts:243:1 › storage denial does not crash startup or theme controls (3.9s)
+  ok 16 [desktop] › tests\e2e\app.spec.ts:253:1 › direct routes, assets and API errors are served by production Express with CSP (3.5s)
+  ok 17 [desktop] › tests\e2e\app.spec.ts:263:1 › recipient creates a signed request through its real wallet signature and opens it (6.4s)
+  ok 18 [desktop] › tests\e2e\app.spec.ts:273:1 › empty testnet pool is unavailable and quotes are labeled as test liquidity (5.5s)
+
+  18 passed (2.2m)

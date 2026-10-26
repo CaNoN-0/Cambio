@@ -6,7 +6,7 @@
  *
  * Exits non-zero if any check fails.
  */
-import { createPublicClient, encodeFunctionData, http, parseAbi, type Address } from 'viem';
+import { createPublicClient, decodeFunctionResult, encodeFunctionData, http, parseAbi, type Address } from 'viem';
 import { MEZO_MAINNET, MEZO_TESTNET, type MezoChainConfig } from '../src/config/chains.ts';
 
 const erc20 = parseAbi([
@@ -66,7 +66,11 @@ async function verify(chain: MezoChainConfig) {
 
   for (const p of chain.pools) {
     try {
-      const [t0, t1, stable] = await Promise.all(['token0', 'token1', 'stable'].map((fn) => c.readContract({ address: p.address, abi: pool, functionName: fn as 'token0' })));
+      const [t0, t1, stable] = await Promise.all([
+        c.readContract({ address: p.address, abi: pool, functionName: 'token0' }),
+        c.readContract({ address: p.address, abi: pool, functionName: 'token1' }),
+        c.readContract({ address: p.address, abi: pool, functionName: 'stable' }),
+      ]);
       const want = [chain.tokens[p.tokenA].address, chain.tokens[p.tokenB].address];
       const tokensMatch = want.some((w) => eq(w, t0 as string)) && want.some((w) => eq(w, t1 as string));
       const fee = await c.readContract({ address: chain.poolFactory, abi: factory, functionName: 'getFee', args: [p.address, p.stable] });
@@ -95,7 +99,8 @@ async function verify(chain: MezoChainConfig) {
   const data = (encodeFunctionData({ abi: erc20, functionName: 'transfer', args: ['0x000000000000000000000000000000000000dEaD', 1n] }) +
     '434d4232' + '00112233445566778899aabbccddeeff') as `0x${string}`;
   try {
-    await c.call({ account: holder, to: chain.tokens.MUSD.address, data });
+    const result = await c.call({ account: holder, to: chain.tokens.MUSD.address, data });
+    if (!result.data || decodeFunctionResult({ abi: erc20, functionName: 'transfer', data: result.data }) !== true) throw new Error('Token did not return true for the exact transfer calldata');
     const gas = await c.estimateGas({ account: holder, to: chain.tokens.MUSD.address, data });
     ok(`MUSD transfer with request-id calldata suffix simulates successfully (gas ${gas})`);
   } catch (e) {

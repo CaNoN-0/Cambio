@@ -11,6 +11,7 @@ import type { TxPhase } from '../src/lib/transactions';
 import { MEZO_TESTNET } from '../src/config/chains';
 import { demoBalance, type WalletBalances } from '../src/lib/balances';
 import { ALICE, BOB, HASH } from './helpers';
+import { buildPaymentRequest } from '../src/lib/paymentRequest';
 
 const hook = {
   phase: { phase: 'idle' } as TxPhase,
@@ -66,6 +67,31 @@ async function fillAndReview(recipient = BOB, amount = '5') {
 }
 
 describe('SendModal', () => {
+  it('requires another review after the payer account changes', async () => {
+    const onClose = () => undefined; const onConnect = () => undefined;
+    const { rerender } = render(<SendModal isOpen onClose={onClose} onOpenConnectWallet={onConnect} wallet={wallet()} />);
+    await fillAndReview();
+    rerender(<SendModal isOpen onClose={onClose} onOpenConnectWallet={onConnect} wallet={wallet({ address: BOB })} />);
+    fireEvent.click(screen.getByRole('button', { name: /confirm in wallet/i }));
+    expect(await screen.findByText(/account or network changed/i)).toBeTruthy();
+    expect(hook.send).not.toHaveBeenCalled();
+  });
+
+  it('publishes a request proof when rechecking an unknown payment confirms it', async () => {
+    const lockedRequest = { request: buildPaymentRequest({ chain: MEZO_TESTNET, recipient: BOB, amount: 5n * 10n ** 18n, memo: '', lifetimeSeconds: 3600 }), recipientLabel: '@bob' };
+    const onRequestPaid = vi.fn(); const onClose = () => undefined; const onConnect = () => undefined;
+    const props = { isOpen: true, onClose, onOpenConnectWallet: onConnect, wallet: wallet(), lockedRequest, onRequestPaid };
+    const { rerender } = render(<SendModal {...props} />);
+    await waitFor(() => expect(screen.getByText('Valid address')).toBeTruthy());
+    fireEvent.click(screen.getByRole('button', { name: /review transfer/i }));
+    await screen.findByText(/review transfer/i, { selector: 'h2' });
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: /confirm in wallet/i })));
+    hook.phase = { phase: 'unknown', hash: HASH, message: 'Pending' }; rerender(<SendModal {...props} />);
+    expect(onRequestPaid).not.toHaveBeenCalled();
+    hook.phase = { phase: 'confirmed', hash: HASH, receipt: { status: 'success', blockNumber: '42', gasUsed: '1', effectiveGasPrice: null, blockTimestamp: null } };
+    rerender(<SendModal {...props} />);
+    expect(onRequestPaid).toHaveBeenCalledExactlyOnceWith(HASH);
+  });
   it('asks a disconnected user to connect instead of showing a form that cannot work', () => {
     const onConnect = vi.fn();
     renderSend(wallet({ isConnected: false, address: null, chain: null, isSupportedNetwork: false }), { onOpenConnectWallet: onConnect });
@@ -83,8 +109,9 @@ describe('SendModal', () => {
     fireEvent.change(screen.getByLabelText(/recipient/i), { target: { value: BOB } });
     fireEvent.change(screen.getByLabelText(/amount \(musd\)/i), { target: { value: '5' } });
     await waitFor(() => screen.getByText('Valid address'));
-    fireEvent.click(screen.getByRole('button', { name: /review transfer/i }));
-    expect(await screen.findByText(/balance has not loaded/i)).toBeTruthy();
+    const review = screen.getByRole('button', { name: /review transfer/i }) as HTMLButtonElement;
+    expect(review.disabled).toBe(true);
+    fireEvent.click(review);
     expect(hook.prepare).not.toHaveBeenCalled();
   });
 
@@ -112,7 +139,7 @@ describe('SendModal', () => {
     expect(hook.prepare).toHaveBeenCalledWith(expect.objectContaining({ recipient: BOB, amount: 5n * 10n ** 18n }));
     expect(screen.getByText(/Mezo Testnet \(chain 31611\)/)).toBeTruthy();
     expect(screen.getByText(/0x1189…c503/i)).toBeTruthy();
-    expect(screen.getByText(/≤ 0\.0000000000*51 BTC \(estimate\)/)).toBeTruthy();
+    expect(screen.getByText(/≈ 0\.0000000000*51 BTC \(estimate\)/)).toBeTruthy();
     const confirm = screen.getByRole('button', { name: /confirm in wallet/i });
     await act(async () => {
       fireEvent.click(confirm);

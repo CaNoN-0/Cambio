@@ -132,7 +132,7 @@ export function buildPaymentRequest(input: {
     throw new Error('Unsupported expiry.');
   }
   const createdAt = input.nowSeconds ?? Math.floor(Date.now() / 1000);
-  return {
+  const request: SignedPaymentRequest = {
     v: REQUEST_VERSION,
     id: input.id ?? randomRequestId(),
     chainId: input.chain.chainId,
@@ -143,6 +143,9 @@ export function buildPaymentRequest(input: {
     createdAt,
     expiresAt: createdAt + input.lifetimeSeconds,
   };
+  const error = validateSignedRequestShape(request);
+  if (error) throw new Error(error);
+  return request;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -225,11 +228,15 @@ export function parsePaymentLink(href: string): ParsedPaymentLink | null {
   const params = paramsFrom(href);
   if (!params || !(params.has('r') || params.has('req') || params.has('to'))) return null;
 
+  if (href.length > 12_000 || [...params.keys()].some((key) => params.getAll(key).length !== 1)) return { kind: 'invalid', error: 'Ambiguous or oversized payment link.' };
+  if (params.has('s') && !params.has('r')) return { kind: 'invalid', error: 'Signed request payload is missing.' };
+
   for (const [, value] of params) {
     if (value.length > MAX_LINK_PARAM_LENGTH) return { kind: 'invalid', error: 'This payment link is too long to be valid.' };
   }
 
   if (params.has('r')) {
+    if (!/^[A-Za-z0-9_-]+$/.test(params.get('r') || '')) return { kind: 'invalid', error: 'This payment link is corrupted.' };
     let decoded: unknown;
     try {
       decoded = JSON.parse(fromBase64Url(params.get('r') || ''));
@@ -239,7 +246,7 @@ export function parsePaymentLink(href: string): ParsedPaymentLink | null {
     const shapeError = validateSignedRequestShape(decoded);
     if (shapeError) return { kind: 'invalid', error: shapeError };
     const signature = params.get('s') || '';
-    if (!isHex(signature) || signature.length < 132) return { kind: 'invalid', error: 'This payment link is missing a valid signature.' };
+    if (!/^0x(?:[0-9a-fA-F]{2}){0,2048}$/.test(signature)) return { kind: 'invalid', error: 'This payment link is missing a valid signature.' };
     const tx = params.get('tx');
     if (tx && !/^0x[0-9a-fA-F]{64}$/.test(tx)) return { kind: 'invalid', error: 'The attached payment proof is not a valid transaction hash.' };
     const req = decoded as SignedPaymentRequest;
@@ -376,7 +383,8 @@ export function verifySettlement(
   receipt: ReceiptWithLogs,
   blockTimestampMs: number | null
 ): SettlementResult {
-  if (tx.chainId !== undefined && tx.chainId !== req.chainId) return { status: 'mismatch', reason: 'Transaction is on a different network.' };
+  if (validateSignedRequestShape(req)) return { status: 'mismatch', reason: 'Invalid payment request.' };
+  if (tx.chainId !== req.chainId) return { status: 'mismatch', reason: 'Transaction network is unknown or different.' };
   if (!tx.to || tx.to.toLowerCase() !== req.token.toLowerCase()) return { status: 'mismatch', reason: 'Transaction is not an MUSD transfer.' };
   if (tx.input.toLowerCase() !== expectedPaymentCalldata(req).toLowerCase()) {
     return { status: 'mismatch', reason: 'Transaction does not pay this request (recipient, amount or request id differ).' };
@@ -386,7 +394,8 @@ export function verifySettlement(
     return { status: 'mismatch', reason: 'Receipt has no matching MUSD Transfer event.' };
   }
   const blockNumber = receipt.blockNumber.toString();
-  if (blockTimestampMs !== null && blockTimestampMs / 1000 > req.expiresAt) {
+  if (blockTimestampMs === null || !Number.isSafeInteger(blockTimestampMs) || blockTimestampMs < req.createdAt * 1000) return { status: 'mismatch', reason: 'Payment time is unavailable or predates the signed request.' };
+  if (blockTimestampMs / 1000 >= req.expiresAt) {
     return { status: 'settled_after_expiry', paidAt: blockTimestampMs, payer: getAddress(tx.from), blockNumber };
   }
   return { status: 'settled', paidAt: blockTimestampMs, payer: getAddress(tx.from), blockNumber };

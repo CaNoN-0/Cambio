@@ -80,9 +80,10 @@ export const SendModal: React.FC<SendModalProps> = ({
   const [formError, setFormError] = useState<string | null>(null);
   const [preparing, setPreparing] = useState(false);
   const [demoDone, setDemoDone] = useState(false);
-  const settledNotified = useRef(false);
+  const settledNotified = useRef<string | null>(null);
   // Synchronous guard: a double click must never start two transfers (the hook has its own lock too).
   const confirming = useRef(false);
+  const reviewed = useRef<ReturnType<typeof buildParams>>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
 
   // Reset when (re)opened.
@@ -102,7 +103,7 @@ export const SendModal: React.FC<SendModalProps> = ({
     setResolved(null);
     setResolutionError(null);
     setDemoDone(false);
-    settledNotified.current = false;
+    settledNotified.current = null;
     transfer.reset();
     // Focus the dialog for keyboard and screen-reader users.
     setTimeout(() => dialogRef.current?.focus(), 0);
@@ -174,8 +175,9 @@ export const SendModal: React.FC<SendModalProps> = ({
 
   // Notify the parent exactly once per terminal outcome.
   useEffect(() => {
-    if (step !== 'result' || settledNotified.current || !isTerminal(transfer.phase)) return;
-    settledNotified.current = true;
+    const outcome = transfer.phase.phase + ('hash' in transfer.phase ? transfer.phase.hash : '');
+    if (step !== 'result' || settledNotified.current === outcome || !isTerminal(transfer.phase)) return;
+    settledNotified.current = outcome;
     if (parsed.ok && resolved) onTransferSettled?.(transfer.phase, { recipientLabel: resolved.label, amount: parsed.value });
     if (transfer.phase.phase === 'confirmed' && lockedRequest) onRequestPaid?.(transfer.phase.hash);
   }, [step, transfer.phase, parsed, resolved, onTransferSettled, lockedRequest, onRequestPaid]);
@@ -193,6 +195,8 @@ export const SendModal: React.FC<SendModalProps> = ({
       amount: parsed.value,
       memo: memo.trim() || undefined,
       requestId: lockedRequest?.request.id,
+      requestCreatedAt: lockedRequest?.request.createdAt,
+      requestExpiresAt: lockedRequest?.request.expiresAt,
       dataSuffix: lockedRequest ? requestIdSuffix(lockedRequest.request.id) : undefined,
     };
   };
@@ -217,7 +221,7 @@ export const SendModal: React.FC<SendModalProps> = ({
     setPreparing(true);
     const preview = await transfer.prepare(params);
     setPreparing(false);
-    if (preview) setStep('review');
+    if (preview) { reviewed.current = params; setStep('review'); }
   };
 
   const handleConfirm = async () => {
@@ -232,8 +236,13 @@ export const SendModal: React.FC<SendModalProps> = ({
       setStep('result');
       return;
     }
-    const params = buildParams();
+    const params = reviewed.current;
     if (!params) return;
+    if (params.from.toLowerCase() !== wallet.address?.toLowerCase() || params.chain.chainId !== wallet.chainId) {
+      setFormError('Your account or network changed. Review the transfer again.');
+      setStep('form');
+      return;
+    }
     confirming.current = true;
     setStep('result');
     try {
@@ -344,7 +353,7 @@ export const SendModal: React.FC<SendModalProps> = ({
                   onClick={() => {
                     transfer.reset();
                     setStep('review');
-                    settledNotified.current = false;
+                    settledNotified.current = null;
                   }}
                   className="w-full py-3 rounded-2xl border border-[#E2E2E0] dark:border-[#26262B] text-xs font-semibold hover:bg-[#F0F0EE] dark:hover:bg-[#1C1C1F]"
                 >
@@ -400,7 +409,7 @@ export const SendModal: React.FC<SendModalProps> = ({
                   {chain.name} (chain {chain.chainId}){!chain.isTestnet && <span className="ml-1 text-red-600 dark:text-red-400 font-semibold">· real funds</span>}
                 </Row>
                 <Row label="Network fee">
-                  {isDemo ? 'None (simulated)' : transfer.preview ? `≤ ${formatTokenDisplay(transfer.preview.estimatedFee, 18, { maxFractionDigits: 18, minFractionDigits: 0 })} BTC (estimate)` : '—'}
+                  {isDemo ? 'None (simulated)' : transfer.preview ? `≈ ${formatTokenDisplay(transfer.preview.estimatedFee, 18, { maxFractionDigits: 18, minFractionDigits: 0 })} BTC (estimate)` : '—'}
                 </Row>
                 {memo && <Row label="Note (this device)"><span className="truncate max-w-[220px] inline-block align-bottom">{memo}</span></Row>}
                 {lockedRequest && <Row label="Request id"><span className="font-mono text-[11px]">{lockedRequest.request.id}</span></Row>}
@@ -584,7 +593,7 @@ export const SendModal: React.FC<SendModalProps> = ({
 
               <button
                 type="submit"
-                disabled={preparing || (wallet.isConnected && !wallet.isSupportedNetwork)}
+                disabled={preparing || (wallet.isConnected && (!wallet.isSupportedNetwork || available === null))}
                 className="group w-full py-3.5 rounded-2xl bg-[#111111] hover:bg-[#262626] dark:bg-[#FFFFFF] dark:text-[#111111] text-white text-xs font-semibold flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {!wallet.isConnected ? (

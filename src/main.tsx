@@ -1,19 +1,9 @@
-import { createRoot } from 'react-dom/client';
-import { WagmiProvider } from 'wagmi';
-import { QueryClientProvider } from '@tanstack/react-query';
-import { wagmiAdapter, queryClient } from './config/walletConnect';
-import { ThemeProvider } from './context/ThemeContext';
-import { CurrencyProvider } from './context/CurrencyContext';
-import App from './App.tsx';
-import './index.css';
-createRoot(document.getElementById('root')!).render(
-  <WagmiProvider config={wagmiAdapter.wagmiConfig}>
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <CurrencyProvider>
-          <App />
-        </CurrencyProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
-  </WagmiProvider>
-);
+import { ensureBrowserStorage } from './lib/browserStorage';
+
+// Initialise optional storage before loading SDKs that access it at module scope.
+const persistent = ensureBrowserStorage();
+document.documentElement.dataset.storagePersistent = String(persistent);
+import('./appEntry').catch(() => {
+  const root = document.getElementById('root');
+  if (root) root.textContent = 'Cambio could not start. Reload the page or try another browser.';
+});

@@ -26,7 +26,7 @@ export const TransactionDetailModal: React.FC<{ item: ActivityItem | null; onClo
   const chain = getKnownChainConfig(item.chainId);
   const fiat = item.symbol === 'MUSD' ? formatTokenFiat(toDisplayNumber(item.amount, item.decimals), 'MUSD') : null;
   const rows: { label: string; value: React.ReactNode }[] = [
-    { label: 'Status', value: <StatusBadge status={item.status} /> },
+    { label: 'Status', value: <StatusBadge status={item.status} source={item.source} /> },
     { label: 'Time', value: formatDateTime(item.timestamp) },
     { label: item.kind === 'receive' ? 'From' : 'To', value: <span className="font-mono text-[11px] break-all">{item.counterparty ?? '—'}</span> },
     ...(item.memo ? [{ label: 'Note (this device)', value: item.memo }] : []),

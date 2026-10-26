@@ -21,6 +21,7 @@ const RESERVED_EXACT = [
   'administrator', 'help', 'helpdesk', 'team', 'staff', 'moderator', 'mod', 'system', 'root', 'treasury',
   'wallet', 'bank', 'verify', 'payments', 'refund', 'airdrop', 'bitcoin', 'btc', 'satoshi', 'null', 'undefined',
 ];
+const RESERVED_LOOKALIKES: Record<string, string> = { '0': 'o', '1': 'i', '2': 'z', '3': 'e', '4': 'a', '5': 's', '7': 't', '8': 'b' };
 
 export function normalizeUsername(raw: string): string {
   return (raw ?? '').trim().replace(/^@+/, '').toLowerCase();
@@ -43,7 +44,8 @@ export function validateUsername(raw: string): UsernameValidation {
     return { valid: false, username, error: 'Underscores cannot start or end a name, or appear twice in a row.' };
   }
   const root = username.replace(/[_0-9]/g, '');
-  if (RESERVED_EXACT.includes(root) || RESERVED_BRAND_WORDS.some((w) => root.startsWith(w) || root.endsWith(w))) {
+  const lookalikeRoot = username.replace(/_/g, '').replace(/[01234578]/g, (c) => RESERVED_LOOKALIKES[c]);
+  if ([root, lookalikeRoot].some((candidate) => RESERVED_EXACT.includes(candidate) || RESERVED_BRAND_WORDS.some((w) => candidate.startsWith(w) || candidate.endsWith(w)))) {
     return { valid: false, username, error: 'That name is reserved to prevent impersonation.' };
   }
   return { valid: true, username };

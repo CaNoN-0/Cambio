@@ -1,0 +1,11 @@
+warning: in the working copy of 'README.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'package.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/SwapView.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/config/chains.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/context/ThemeContext.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/hooks/useActivity.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/hooks/useMusdTransfer.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/hooks/useSwap.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/musdTransfer.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/swap.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/transactions.ts', LF will be replaced by CRLF the next time Git touches it
