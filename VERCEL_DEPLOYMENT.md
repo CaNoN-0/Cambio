@@ -2,6 +2,16 @@
 
 The existing public origin is https://cambio-rho.vercel.app. Its Git integration is associated with the `cambio` project under `jomilojujaiyesimi-7017s-projects`. Before this fix, the homepage returned 200 but `/api/health`, username availability and `/app/activity` returned Vercel 404 responses.
 
+## Observed deployment — 2026-10-26
+
+Revision `f7e3911224b22efe236e9b1ee2449602e98113a5` was pushed to `main`. Both existing Vercel Git status checks reported successful deployments. The target project's deployment is [9x7qkt1ZJNS8s2eu8gbNuKQaQMXU](https://vercel.com/jomilojujaiyesimi-7017s-projects/cambio/9x7qkt1ZJNS8s2eu8gbNuKQaQMXU).
+
+Public HTTP checks confirmed `/` 200, the generated JavaScript asset 200, `/app/activity` 200, `/api/missing` 404 **JSON**, and security headers on the CDN/frontend and API. `/api/health` now reaches Express and returns **503 JSON**, `identity.available=false`, with `Firestore identity store could not be initialised.` Username availability likewise returns 503 JSON. The routing/backend deployment is verified; durable identity readiness is **BLOCKED**.
+
+The connected Vercel account returns 403 for the owning team, and the prescribed team-authorization recovery returns team not found. Its runtime environment and server logs could not be inspected or modified. Missing, invalid or unauthorized Google credentials cannot be distinguished from the public error alone. The owning account must configure/verify the variables and Firestore permissions below, redeploy, then observe HTTP 200 and durable Firestore identity before usernames can be claimed. No production username records were changed. Complete public response evidence is in `audit-evidence/vercel-public-health.json`.
+
+Local verification passed: TypeScript, lint, 152 unit/integration tests, 14 Firestore emulator tests, 18 production-browser tests, build and read-only chain checks. The Vercel Node builder also compiled the function and plain Node booted its emitted entry point; no Vite/esbuild runtime import resolution was involved. These tests do not prove the deployed Firestore credentials are configured.
+
 ## Routing and runtime
 
 `vercel.json` selects Vite, runs `npm ci` and `npm run build`, serves `dist` through the CDN, routes `/api/*` to the Node function `api/index.ts`, and rewrites `/app/*` to `index.html`. Missing assets are not rewritten to HTML. Security headers cover both static files and API responses; the CSP is regression-tested against the Express policy.

@@ -8,6 +8,8 @@ After repairs, `npm run typecheck`, `npm run lint`, `npm test -- --reporter=dot`
 
 The original audit command record follows.
 
+Publication verification for the follow-up: `git commit` created `f7e3911224b22efe236e9b1ee2449602e98113a5`; `git push origin main` succeeded, and `git ls-remote origin refs/heads/main` matched that SHA. Read-only GitHub status requests observed both existing Vercel checks transition from pending to success. Public requests then confirmed the backend/API routes and security headers; the health/availability 503 responses identified a remaining Firestore initialization blocker. Exact response evidence is retained in `audit-evidence/vercel-public-health.json`. No Vercel environment variables or permissions were changed.
+
 Audit run 2026-10-25, handoff 2026-10-26. Commands ran locally on Windows with Node 24.20.0, npm 11.19.0, and a checksum-verified Temurin Java 21 JRE for the emulator. No audit command pushed, deployed, broadcast a transaction or changed production data.
 
 After the audit, the user explicitly requested a Git push. Publication preparation fetched origin, confirmed main had not diverged, compared every publishable file with the reviewed source snapshot (zero differences before this documentation update), scanned publishable text and retained logs for private-credential patterns (zero matches), and ran `git diff --check`. The publication commit preserves the reviewed source, regression tests and command evidence. Deployment, transaction broadcasts and hackathon submission remain outside this publication step.
