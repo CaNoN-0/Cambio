@@ -7,7 +7,7 @@
  * not shared between instances, so /api/health reports durable: false and the UI says so.
  */
 
-import { decideClaim, type ChallengeRecord, type IdentityStore, type UsernameRecord, type CommitResult } from './store';
+import { decideClaim, type ChallengeRecord, type IdentityStore, type UsernameRecord, type CommitResult } from './store.js';
 
 export class MemoryIdentityStore implements IdentityStore {
   readonly kind = 'memory' as const;

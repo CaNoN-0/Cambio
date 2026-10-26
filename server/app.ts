@@ -7,8 +7,8 @@
  */
 
 import express, { type NextFunction, type Request, type Response } from 'express';
-import { IdentityError, IdentityService, StoreUnavailableError, type OriginContext } from './identity/service';
-import { rateLimit, type SharedRateLimitStore } from './rateLimit';
+import { IdentityError, IdentityService, StoreUnavailableError, type OriginContext } from './identity/service.js';
+import { rateLimit, type SharedRateLimitStore } from './rateLimit.js';
 
 export interface AppOptions {
   /** Null when the identity store could not be initialised; identity routes then answer 503. */

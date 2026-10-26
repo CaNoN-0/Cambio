@@ -17,8 +17,8 @@
 import type { DocumentData, DocumentReference, Firestore } from 'firebase-admin/firestore';
 import { createHash } from 'node:crypto';
 import { isAddress } from 'viem';
-import { validateUsername } from '../../shared/username';
-import { decideClaim, StoreUnavailableError, type ChallengeRecord, type CommitResult, type IdentityStore, type UsernameRecord } from './store';
+import { validateUsername } from '../../shared/username.js';
+import { decideClaim, StoreUnavailableError, type ChallengeRecord, type CommitResult, type IdentityStore, type UsernameRecord } from './store.js';
 
 export const COLLECTIONS = {
   usernames: 'verified_usernames',

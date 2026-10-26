@@ -10,5 +10,6 @@ coverage/
 server.js
 test-results/
 playwright-report/
+.vercel/
 firestore-debug.log
 *-debug.log

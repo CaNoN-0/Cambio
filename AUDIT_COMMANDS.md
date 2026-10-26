@@ -1,5 +1,13 @@
 # Executed command record
 
+## Vercel remediation follow-up — 2026-10-26
+
+The user authorized backend deployment after reporting the unavailable registry on https://cambio-rho.vercel.app. Read-only HTTP requests observed `/` 200, `/api/health` 404, username availability 404 and `/app/activity` 404. `git status`, `git diff --check`, GitHub commit statuses and deployment status GETs inspected the current source and the existing Git-triggered Vercel integration. `vercel --version` reported 59.23.2; `vercel whoami` reported an expired saved login. The subsequently connected Vercel integration returned no accessible projects/teams and a 403 for the owning team; its prescribed team-authorization recovery returned 404 team not found. No credentials were obtained or permissions changed.
+
+After repairs, `npm run typecheck`, `npm run lint`, `npm test -- --reporter=dot`, `npm run test:rules`, `npm run test:e2e`, `npm run verify:chain` and `npm run build` were run; retained `audit-evidence/vercel-fix-*` logs record their observed results. The E2E command also builds the final production source before starting Express. The local `@vercel/node` builder compiled the function, then plain Node imported its emitted JavaScript and served a correct 503 when production memory storage was prohibited. That check first exposed missing ESM import extensions, which were fixed. A persistent regression test now compiles the API/server modules with TypeScript and boots them in a separate plain Node process. No blockchain transaction was broadcast and no production username was claimed.
+
+The original audit command record follows.
+
 Audit run 2026-10-25, handoff 2026-10-26. Commands ran locally on Windows with Node 24.20.0, npm 11.19.0, and a checksum-verified Temurin Java 21 JRE for the emulator. No audit command pushed, deployed, broadcast a transaction or changed production data.
 
 After the audit, the user explicitly requested a Git push. Publication preparation fetched origin, confirmed main had not diverged, compared every publishable file with the reviewed source snapshot (zero differences before this documentation update), scanned publishable text and retained logs for private-credential patterns (zero matches), and ran `git diff --check`. The publication commit preserves the reviewed source, regression tests and command evidence. Deployment, transaction broadcasts and hackathon submission remain outside this publication step.

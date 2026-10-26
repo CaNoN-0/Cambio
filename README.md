@@ -180,6 +180,12 @@ npm start                    # NODE_ENV=production node server.js, listens on $P
 
 `vite preview` does not run the API; use `npm start`. Vite's dev middleware is development-only and is not part of the production server.
 
+### Vercel
+
+The Vite frontend and Express API deploy together using `vercel.json` and the `api/index.ts` function. `/api/*` goes to Express, `/app/*` refreshes serve the SPA, and assets stay on the CDN. The function initializes the production Firestore registry once per warm instance and shares rate limits in Firestore. Failed initialization is retried after 30 seconds; it never falls back to a production memory registry.
+
+Set the server runtime variables and Firebase service-account secret described in [VERCEL_DEPLOYMENT.md](VERCEL_DEPLOYMENT.md). A working frontend alone does not prove the backend is deployed or identity is healthy: `/api/health` must return HTTP 200 with `identity.available: true` and `identity.durable: true`. Missing credentials produce an honest HTTP 503. Never put server credentials in a `VITE_*` variable or commit a service-account JSON file.
+
 ## Testing evidence
 
 See [SUBMISSION_READINESS.md](SUBMISSION_READINESS.md) and its evidence files for the commands and results observed during the 2026-10-25 review. Earlier claimed results are not used as current evidence. The test wallet signs genuine EIP-191/EIP-712 messages with disposable test keys, reads live testnet state, and rejects every broadcast. It cannot prove an actual payment succeeded.

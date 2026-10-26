@@ -9,9 +9,9 @@
 import express from 'express';
 import path from 'node:path';
 import { existsSync } from 'node:fs';
-import { createApiApp } from './app';
-import { bootstrapIdentity } from './bootstrap';
-import { securityHeaders, parseTrustProxy, parsePublicOrigin } from './securityHeaders';
+import { createApiApp } from './app.js';
+import { bootstrapIdentity } from './bootstrap.js';
+import { securityHeaders, parseTrustProxy, parsePublicOrigin } from './securityHeaders.js';
 
 // A rejected promise inside a dependency (e.g. a gRPC credential refresh) must not take the whole
 // payments API down. Log it; request handlers already convert their own failures into 5xx responses.

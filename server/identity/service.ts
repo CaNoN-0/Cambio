@@ -15,9 +15,9 @@
 
 import { createPublicClient, getAddress, http, isAddress, verifyMessage, type Hex } from 'viem';
 import { createSiweMessage, generateSiweNonce, parseSiweMessage, validateSiweMessage } from 'viem/siwe';
-import { MEZO_MAINNET, MEZO_TESTNET } from '../../src/config/chains';
-import { formatUsername, validateUsername } from '../../shared/username';
-import { StoreUnavailableError, type ClaimAction, type IdentityStore, type UsernameRecord } from './store';
+import { MEZO_MAINNET, MEZO_TESTNET } from '../../src/config/chains.js';
+import { formatUsername, validateUsername } from '../../shared/username.js';
+import { StoreUnavailableError, type ClaimAction, type IdentityStore, type UsernameRecord } from './store.js';
 
 export const CHALLENGE_TTL_MS = 5 * 60 * 1000;
 
